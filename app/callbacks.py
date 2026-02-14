@@ -3,7 +3,7 @@ Callbacks for Financing Calculator
 Handles all Dash callbacks for user interactions and data updates
 """
 
-from dash import callback, Input, Output, State, dcc, html
+from dash import Input, Output, State, dcc, html
 from calculator import FinancingCalculator, FinancingInput
 from components import create_card, create_metric_box, create_table
 from config import COLORS
