@@ -1,0 +1,123 @@
+"""
+Translations for Financing Calculator
+Supports German (de) and English (en)
+"""
+
+TRANSLATIONS = {
+    "en": {
+        "app_title": "Financing Calculator",
+        "app_subtitle": "Interactive analysis of property financing with detailed interest curve diagrams",
+        "input_params": "Input Parameters",
+        "purchase_price": "Purchase Price (€)",
+        "equity": "Equity (€)",
+        "interest_rate": "Interest Rate p.a. (%)",
+        "initial_amortization": "Initial Amortization p.a. (%)",
+        "interest_binding": "Interest Period (Years)",
+        "special_payment": "Special Payment (€)",
+        "years_to_show": "Years to Show",
+        "overview": "Overview",
+        "schedule": "Amortization Schedule",
+        "charts": "Charts",
+        "export": "Export",
+        "loan_amount": "Loan Amount",
+        "monthly_rate": "Monthly Rate",
+        "total_interest": "Total Interest",
+        "remaining_debt": "Remaining Debt after",
+        "years_short": "Years",
+        "input": "Input",
+        "rates": "Rates",
+        "totals": "Totals",
+        "purchase_price_label": "Purchase Price",
+        "equity_label": "Equity",
+        "interest_rate_label": "Interest Rate",
+        "annual_rate": "Annual Rate",
+        "total_amortization": "Total Amortization",
+        "total_paid": "Total Paid",
+        "interest_costs": "Interest Costs",
+        "debt_development": "Remaining Debt Development",
+        "year": "Year",
+        "interest_vs_amortization": "Interest vs. Amortization per Year",
+        "cost_distribution": "Cost Distribution",
+        "interest_curve": "Interest Curve over Years",
+        "cumulative_progress": "Cumulative Progress: Amortization vs. Interest",
+        "interest_portion": "Interest Portion",
+        "amortization": "Amortization",
+        "cumulative_amortization": "Cumulative Amortization",
+        "cumulative_interest": "Cumulative Interest",
+        "export_data": "Export Data",
+        "download_csv": "📥 Download CSV",
+        "download_json": "📥 Download JSON",
+        "amount": "Amount",
+        "language": "Language",
+        "de": "Deutsch",
+        "en": "English",
+        "error_calculation": "Error in calculation",
+        "export_csv_filename": "amortization_schedule.csv",
+        "export_json_filename": "amortization_schedule.json",
+    },
+    "de": {
+        "app_title": "Baufinanzierung Rechner",
+        "app_subtitle": "Interaktive Analyse von Immobilienfinanzierungen mit detaillierten Zinsverlauf-Diagrammen",
+        "input_params": "Eingabeparameter",
+        "purchase_price": "Kaufpreis (€)",
+        "equity": "Eigenkapital (€)",
+        "interest_rate": "Sollzins p.a. (%)",
+        "initial_amortization": "Anfängliche Tilgung p.a. (%)",
+        "interest_binding": "Zinsbindung (Jahre)",
+        "special_payment": "Jährliche Sondertilgung (€)",
+        "years_to_show": "Jahre anzeigen",
+        "overview": "Übersicht",
+        "schedule": "Tilgungsplan",
+        "charts": "Diagramme",
+        "export": "Export",
+        "loan_amount": "Darlehensbetrag",
+        "monthly_rate": "Monatliche Rate",
+        "total_interest": "Gezahlte Zinsen",
+        "remaining_debt": "Restschuld nach",
+        "years_short": "Jahren",
+        "input": "Eingabe",
+        "rates": "Raten",
+        "totals": "Gesamtsummen",
+        "purchase_price_label": "Kaufpreis",
+        "equity_label": "Eigenkapital",
+        "interest_rate_label": "Zinssatz",
+        "annual_rate": "Jährliche Rate",
+        "total_amortization": "Gesamttilgung",
+        "total_paid": "Zahlungen gesamt",
+        "interest_costs": "Zinskosten",
+        "debt_development": "Entwicklung der Restschuld",
+        "year": "Jahr",
+        "interest_vs_amortization": "Zinsanteil vs. Tilgung pro Jahr",
+        "cost_distribution": "Kostenaufteilung",
+        "interest_curve": "Zinsverlauf über die Jahre",
+        "cumulative_progress": "Kumulativer Verlauf: Tilgung vs. Zinsen",
+        "interest_portion": "Zinsanteil",
+        "amortization": "Tilgung",
+        "cumulative_amortization": "Kumulierte Tilgung",
+        "cumulative_interest": "Kumulierte Zinsen",
+        "export_data": "Daten exportieren",
+        "download_csv": "📥 Als CSV herunterladen",
+        "download_json": "📥 Als JSON herunterladen",
+        "amount": "Betrag",
+        "language": "Sprache",
+        "de": "Deutsch",
+        "en": "English",
+        "error_calculation": "Fehler bei der Berechnung",
+        "export_csv_filename": "tilgungsplan.csv",
+        "export_json_filename": "tilgungsplan.json",
+    },
+}
+
+
+def get_text(lang, key):
+    """Get translated text for a given language and key"""
+    if lang not in TRANSLATIONS:
+        lang = "en"
+    return TRANSLATIONS.get(lang, {}).get(key, key)
+
+
+def get_all_texts(lang):
+    """Get all translations for a given language"""
+    if lang not in TRANSLATIONS:
+        lang = "en"
+    return TRANSLATIONS.get(lang, {})
