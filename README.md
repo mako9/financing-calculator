@@ -146,6 +146,46 @@ financing-calculator/
 ✅ **Interactive**: Real-time callbacks for responsive UX  
 ✅ **Scalable**: Dash apps can be easily extended  
 
+## 🧪 Testing
+
+### Running Tests
+
+The project includes a comprehensive test suite for the calculator module:
+
+```bash
+# Install test dependencies
+pip install pytest
+
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage report
+pytest tests/ --cov=app --cov-report=html
+```
+
+### Test Suite
+
+**Location**: `tests/test_calculator.py`
+
+**Coverage**: 24 unit tests organized into 5 test classes
+
+| Test Class | Purpose |
+|-----------|---------|
+| `TestFinancingInput` | Validate input parameter dataclass |
+| `TestYearlySchedule` | Verify schedule entry structure |
+| `TestFinancingCalculator` | Core calculation logic and formulas |
+| `TestFinancialAccuracy` | Financial calculation verification |
+| `TestEdgeCases` | Boundary conditions and edge cases |
+
+### Continuous Integration
+
+The project uses **GitHub Actions** for automated testing:
+- Tests run automatically on every commit to `main` branch
+- Python 3.10 environment on Ubuntu
+- All dependencies installed from `requirements.txt`
+- Linting with flake8
+- Results visible in pull requests
+
 ## 💡 Example Scenarios
 
 ### Scenario 1: Standard Financing
