@@ -348,3 +348,215 @@ class TestEdgeCases:
         # Should still calculate correctly
         assert len(schedule) == 5
         assert schedule[0].interest_payment > 0
+
+
+class TestCalculateYearsToPayoff:
+    """Tests for the calculate_years_to_payoff reverse calculation method"""
+
+    @pytest.fixture
+    def basic_financing(self):
+        """Fixture: Basic financing scenario"""
+        input_data = FinancingInput(
+            purchase_price=300000,
+            equity=60000,
+            interest_rate=4.5,
+            initial_amortization=3.0,
+        )
+        return FinancingCalculator(input_data)
+
+    def test_years_to_payoff_reasonable_payment(self, basic_financing):
+        """Test payoff calculation with reasonable monthly payment"""
+        result = basic_financing.calculate_years_to_payoff(2000)  # €2000/month
+
+        assert result["feasible"] is True
+        assert result["years_to_payoff"] is not None
+        assert result["years_to_payoff"] > 0
+        assert result["total_interest"] is not None
+        assert result["total_interest"] >= 0
+        assert result["monthly_payment"] == 2000
+        assert result["remaining_debt"] == pytest.approx(0, abs=1)
+
+    def test_years_to_payoff_high_payment(self, basic_financing):
+        """Test payoff with very high monthly payment"""
+        result = basic_financing.calculate_years_to_payoff(5000)
+
+        assert result["feasible"] is True
+        assert result["years_to_payoff"] is not None
+        assert result["years_to_payoff"] > 0
+        # Higher payment should result in fewer years
+        assert result["years_to_payoff"] < 10
+
+    def test_years_to_payoff_zero_payment(self, basic_financing):
+        """Test that zero payment is rejected"""
+        result = basic_financing.calculate_years_to_payoff(0)
+
+        assert result["feasible"] is False
+        assert result["years_to_payoff"] == 0
+        assert result["error"] == "Payment must be positive"
+        assert result["remaining_debt"] == 240000
+
+    def test_years_to_payoff_negative_payment(self, basic_financing):
+        """Test that negative payment is rejected"""
+        result = basic_financing.calculate_years_to_payoff(-1000)
+
+        assert result["feasible"] is False
+        assert result["years_to_payoff"] == 0
+        assert result["error"] == "Payment must be positive"
+
+    def test_years_to_payoff_insufficient_payment(self, basic_financing):
+        """Test payment that doesn't cover interest"""
+        # At 4.5% interest on 240000, monthly interest is ~900
+        # So paying 500/month is insufficient
+        result = basic_financing.calculate_years_to_payoff(500)
+
+        assert result["feasible"] is False
+        assert result["years_to_payoff"] is None
+        assert "insufficient to cover interest" in result["error"]
+
+    def test_years_to_payoff_barely_sufficient_payment(self, basic_financing):
+        """Test payment barely sufficient to cover interest"""
+        # Loan: 240000 at 4.5% annual = 10800 annual = 900/month interest
+        result = basic_financing.calculate_years_to_payoff(901)
+
+        assert result["feasible"] is True
+        assert result["years_to_payoff"] is not None
+        assert result["years_to_payoff"] > 0
+
+    def test_years_to_payoff_return_contains_required_fields(self, basic_financing):
+        """Test that return dict contains all required fields when feasible"""
+        result = basic_financing.calculate_years_to_payoff(2000)
+
+        required_fields = [
+            "years_to_payoff",
+            "total_interest",
+            "remaining_debt",
+            "monthly_payment",
+            "annual_payment",
+            "feasible",
+            "loan_amount",
+            "interest_rate",
+        ]
+        for field in required_fields:
+            assert field in result
+
+    def test_years_to_payoff_consistency_with_schedule(self, basic_financing):
+        """Test that calculated payoff is consistent with actual schedule"""
+        monthly_payment = 2000
+        result = basic_financing.calculate_years_to_payoff(monthly_payment)
+        years_calculated = result["years_to_payoff"]
+
+        # Generate schedule for the calculated years
+        schedule = basic_financing.calculate_schedule(years_calculated)
+        final_debt = schedule[-1].debt_end
+
+        # Remaining debt should be very small (nearly paid off)
+        assert final_debt < 100  # Less than €100 remaining
+
+    def test_years_to_payoff_different_interest_rates(self):
+        """Test payoff calculation with different interest rates"""
+        # Lower interest rate
+        input_low = FinancingInput(
+            purchase_price=300000,
+            equity=60000,
+            interest_rate=2.0,
+            initial_amortization=3.0,
+        )
+        calc_low = FinancingCalculator(input_low)
+        result_low = calc_low.calculate_years_to_payoff(2000)
+
+        # Higher interest rate
+        input_high = FinancingInput(
+            purchase_price=300000,
+            equity=60000,
+            interest_rate=6.0,
+            initial_amortization=3.0,
+        )
+        calc_high = FinancingCalculator(input_high)
+        result_high = calc_high.calculate_years_to_payoff(2000)
+
+        # Higher interest rate should require more years to pay off
+        assert result_high["years_to_payoff"] > result_low["years_to_payoff"]
+        assert result_high["total_interest"] > result_low["total_interest"]
+
+    def test_years_to_payoff_small_loan(self):
+        """Test payoff calculation for small loan"""
+        input_data = FinancingInput(
+            purchase_price=50000,
+            equity=40000,
+            interest_rate=4.5,
+            initial_amortization=3.0,
+        )
+        calc = FinancingCalculator(input_data)
+        result = calc.calculate_years_to_payoff(500)
+
+        assert result["feasible"] is True
+        assert result["years_to_payoff"] is not None
+        assert result["years_to_payoff"] > 0
+        assert result["loan_amount"] == 10000
+
+    def test_years_to_payoff_large_loan(self):
+        """Test payoff calculation for large loan"""
+        input_data = FinancingInput(
+            purchase_price=1000000,
+            equity=100000,
+            interest_rate=4.5,
+            initial_amortization=3.0,
+        )
+        calc = FinancingCalculator(input_data)
+        result = calc.calculate_years_to_payoff(6000)
+
+        assert result["feasible"] is True
+        assert result["years_to_payoff"] is not None
+        assert result["loan_amount"] == 900000
+
+    def test_years_to_payoff_fractional_months(self, basic_financing):
+        """Test that payoff handles cases requiring multiple years"""
+        # Small payment relative to loan
+        result = basic_financing.calculate_years_to_payoff(1500)
+
+        assert result["feasible"] is True
+        assert result["years_to_payoff"] > 10
+        assert isinstance(result["years_to_payoff"], int)
+
+    def test_years_to_payoff_debt_decreasing(self, basic_financing):
+        """Test that decreasing monthly payment reduces years needed"""
+        result_high = basic_financing.calculate_years_to_payoff(2500)
+        result_low = basic_financing.calculate_years_to_payoff(1500)
+
+        assert result_high["feasible"] is True
+        assert result_low["feasible"] is True
+        # Higher payment should result in fewer years
+        assert result_high["years_to_payoff"] < result_low["years_to_payoff"]
+
+    def test_years_to_payoff_with_zero_interest(self):
+        """Test payoff with 0% interest rate"""
+        input_data = FinancingInput(
+            purchase_price=100000,
+            equity=20000,
+            interest_rate=0.0,
+            initial_amortization=5.0,
+        )
+        calc = FinancingCalculator(input_data)
+        result = calc.calculate_years_to_payoff(1000)
+
+        # With 0% interest, 80000 / 12000 annual = ~6.67 years = 7 years
+        assert result["feasible"] is True
+        assert result["total_interest"] == pytest.approx(0)
+        assert result["years_to_payoff"] == 7
+
+    def test_years_to_payoff_exact_annual_payment(self, basic_financing):
+        """Test payoff with exact annual payment as monthly"""
+        # Basic financing annual payment is 18000
+        # So monthly is 1500
+        result = basic_financing.calculate_years_to_payoff(1500)
+
+        assert result["feasible"] is True
+        assert result["years_to_payoff"] is not None
+
+    def test_years_to_payoff_error_field_when_infeasible(self, basic_financing):
+        """Test that error field exists when calculation is infeasible"""
+        result = basic_financing.calculate_years_to_payoff(500)
+
+        assert result["feasible"] is False
+        assert "error" in result
+        assert len(result["error"]) > 0

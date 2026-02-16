@@ -107,6 +107,13 @@ Adjust the following parameters and observe real-time calculations:
 - CSV Button: Saves the amortization schedule as .csv file
 - JSON Button: Saves all calculation data as .json file
 
+**💰 Affordability**
+- Calculate how many years to pay off the loan based on household income
+- Input: Net household income and percentage you want to spend on payments (5-40%)
+- Output: Affordable monthly payment, years to payoff, total interest, remaining debt
+- Reverse calculation: Given income constraints, find the timeline instead of fixed years
+- Perfect for: Income-based financing decisions and affordability assessment
+
 ## 📁 Project Structure
 
 ```

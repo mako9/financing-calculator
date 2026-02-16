@@ -483,6 +483,103 @@ def create_layout(lang="en"):
                                             ),
                                         ],
                                     ),
+                                    # Affordability Tab
+                                    dcc.Tab(
+                                        label=f"💰 {t('affordability')}",
+                                        value="affordability",
+                                        children=[
+                                            html.Div(
+                                                [
+                                                    html.H3(
+                                                        t("affordability"),
+                                                        style={"marginBottom": "2rem"},
+                                                    ),
+                                                    # Input section
+                                                    html.Div(
+                                                        [
+                                                            html.Div(
+                                                                [
+                                                                    html.Label(
+                                                                        t(
+                                                                            "household_income"
+                                                                        ),
+                                                                        style={
+                                                                            "fontWeight": "600",
+                                                                            "marginBottom": "0.5rem",
+                                                                        },
+                                                                    ),
+                                                                    dcc.Input(
+                                                                        id="household_income_input",
+                                                                        type="number",
+                                                                        placeholder="€",
+                                                                        min=0,
+                                                                        step=100,
+                                                                        style={
+                                                                            "width": "100%",
+                                                                            "padding": "0.75rem",
+                                                                            "borderRadius": "6px",
+                                                                            "border": f"2px solid {COLORS['gray']}",
+                                                                            "fontSize": "1rem",
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                                style={
+                                                                    "marginBottom": "1.5rem"
+                                                                },
+                                                            ),
+                                                            html.Div(
+                                                                [
+                                                                    html.Label(
+                                                                        t(
+                                                                            "income_percentage"
+                                                                        ),
+                                                                        style={
+                                                                            "fontWeight": "600",
+                                                                            "marginBottom": "0.5rem",
+                                                                        },
+                                                                    ),
+                                                                    dcc.Slider(
+                                                                        id="income_percentage_slider",
+                                                                        min=5,
+                                                                        max=40,
+                                                                        step=1,
+                                                                        value=30,
+                                                                        marks={
+                                                                            i: f"{i}%"
+                                                                            for i in range(
+                                                                                5, 41, 5
+                                                                            )
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                                style={
+                                                                    "marginBottom": "1.5rem"
+                                                                },
+                                                            ),
+                                                        ],
+                                                        style={
+                                                            "backgroundColor": "white",
+                                                            "padding": "2rem",
+                                                            "borderRadius": "8px",
+                                                            "boxShadow": BOX_SHADOW,
+                                                            "marginBottom": "2rem",
+                                                        },
+                                                    ),
+                                                    # Results section
+                                                    html.Div(
+                                                        id="affordability_results",
+                                                        style={
+                                                            "backgroundColor": "white",
+                                                            "padding": "2rem",
+                                                            "borderRadius": "8px",
+                                                            "boxShadow": BOX_SHADOW,
+                                                        },
+                                                    ),
+                                                ],
+                                                style={"padding": "1rem"},
+                                            ),
+                                        ],
+                                    ),
                                 ],
                                 style={
                                     "backgroundColor": "white",
