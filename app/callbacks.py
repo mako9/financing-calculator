@@ -352,3 +352,172 @@ def register_callbacks(app):
 
         filename = get_text(lang, "export_json_filename")
         return dcc.send_json(data, filename)
+
+    @app.callback(
+        Output("affordability_results", "children"),
+        [
+            Input("household_income_input", "value"),
+            Input("income_percentage_slider", "value"),
+            Input("language-store", "data"),
+        ],
+        [
+            State("purchase_price", "value"),
+            State("equity", "value"),
+            State("interest_rate", "value"),
+            State("initial_amortization", "value"),
+            State("annual_special_payment", "value"),
+            State("interest_binding_years", "value"),
+        ],
+        prevent_initial_call=False,
+    )
+    def calculate_affordability(
+        household_income,
+        income_percentage,
+        lang,
+        purchase_price,
+        equity,
+        interest_rate,
+        initial_amortization,
+        annual_special_payment,
+        interest_binding,
+    ):
+        """Calculate years to payoff based on household income and affordable percentage"""
+        t = lambda key: get_text(lang, key)
+
+        # Validate inputs
+        if not household_income or household_income <= 0:
+            return html.Div(
+                html.P(
+                    t("error_calculation"),
+                    style={"color": COLORS["danger"], "fontSize": "1rem"},
+                )
+            )
+
+        if not income_percentage or income_percentage < 5 or income_percentage > 40:
+            return html.Div(
+                html.P(
+                    t("error_calculation"),
+                    style={"color": COLORS["danger"], "fontSize": "1rem"},
+                )
+            )
+
+        # Validate financing parameters
+        if (
+            not purchase_price
+            or not equity
+            or not interest_rate
+            or not initial_amortization
+        ):
+            return html.Div(
+                html.P(
+                    f"{t('error_calculation')} - {t('input_params')}",
+                    style={"color": COLORS["danger"], "fontSize": "1rem"},
+                )
+            )
+
+        # Calculate affordable monthly payment
+        affordable_monthly_payment = (household_income * income_percentage) / 100
+
+        # Create calculator and calculate payoff
+        try:
+            input_data = FinancingInput(
+                purchase_price=purchase_price,
+                equity=equity,
+                interest_rate=interest_rate,
+                initial_amortization=initial_amortization,
+                annual_special_payment=annual_special_payment or 0,
+                interest_binding_years=interest_binding or 10,
+            )
+            calculator = FinancingCalculator(input_data)
+            affordability = calculator.calculate_years_to_payoff(
+                affordable_monthly_payment
+            )
+
+            # Build result display
+            if not affordability["feasible"]:
+                return html.Div(
+                    [
+                        html.H4(
+                            "⚠️ " + t("payoff_summary"),
+                            style={"color": COLORS["danger"], "marginBottom": "1rem"},
+                        ),
+                        html.P(
+                            affordability.get("error", t("error_calculation")),
+                            style={"color": COLORS["danger"], "fontSize": "1rem"},
+                        ),
+                    ]
+                )
+
+            # Build results
+            return html.Div(
+                [
+                    html.H4(
+                        "✅ " + t("payoff_summary"),
+                        style={"marginBottom": "2rem", "color": COLORS["success"]},
+                    ),
+                    # Results cards in grid
+                    html.Div(
+                        [
+                            create_card(
+                                t("household_income"),
+                                f"€{household_income:,.0f}",
+                                COLORS["primary"],
+                            ),
+                            create_card(
+                                t("affordable_monthly_payment"),
+                                f"€{affordable_monthly_payment:,.0f}",
+                                COLORS["primary"],
+                            ),
+                            create_card(
+                                t("years_to_payoff"),
+                                f"{affordability['years_to_payoff']} {t('years_short')}",
+                                COLORS["success"],
+                            ),
+                            create_card(
+                                t("total_interest_by_payoff"),
+                                f"€{affordability['total_interest']:,.0f}",
+                                COLORS["danger"],
+                            ),
+                        ],
+                        style={
+                            "display": "grid",
+                            "gridTemplateColumns": "repeat(auto-fit, minmax(200px, 1fr))",
+                            "gap": "1.5rem",
+                            "marginBottom": "2rem",
+                        },
+                    ),
+                    # Detailed metrics
+                    create_metric_box(
+                        t("payoff_summary"),
+                        {
+                            t("loan_amount"): f"€{calculator.loan_amount:,.2f}",
+                            t(
+                                "monthly_payment_affordable"
+                            ): f"€{affordable_monthly_payment:,.2f}",
+                            t(
+                                "annual_rate"
+                            ): f"€{affordability['annual_payment']:,.2f}",
+                            t(
+                                "years_needed"
+                            ): f"{affordability['years_to_payoff']} {t('years_short')}",
+                            t(
+                                "total_interest_by_payoff"
+                            ): f"€{affordability['total_interest']:,.2f}",
+                            t(
+                                "interest_rate_label"
+                            ): f"{calculator.input.interest_rate}%",
+                            t(
+                                "final_remaining_debt"
+                            ): f"€{max(0, affordability['remaining_debt']):,.2f}",
+                        },
+                    ),
+                ]
+            )
+
+        except Exception as e:
+            return html.Div(
+                html.P(
+                    f"{t('error_calculation')}: {str(e)}",
+                    style={"color": COLORS["danger"], "fontSize": "1rem"},
+                )
+            )

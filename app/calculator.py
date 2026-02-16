@@ -122,3 +122,99 @@ class FinancingCalculator:
             "Restschuld Ende (€)": [item.debt_end for item in self.schedule],
         }
         return pd.DataFrame(data)
+
+    def calculate_years_to_payoff(self, affordable_monthly_payment: float) -> dict:
+        """
+        Calculate how many years needed to pay off loan given an affordable monthly payment.
+        This is a reverse calculation for affordability analysis.
+
+        Args:
+            affordable_monthly_payment: Maximum affordable monthly payment (€)
+
+        Returns:
+            Dictionary with payoff analysis including years needed and total interest
+        """
+        if affordable_monthly_payment <= 0:
+            return {
+                "years_to_payoff": 0,
+                "total_interest": 0,
+                "remaining_debt": self.loan_amount,
+                "monthly_payment": 0,
+                "feasible": False,
+                "error": "Payment must be positive",
+            }
+
+        remaining_debt = self.loan_amount
+        annual_payment = affordable_monthly_payment * 12
+        rate = self.input.interest_rate / 100
+        total_interest = 0
+        years = 0
+        max_years = 500  # Prevent infinite loops
+
+        # Simulate payoff year by year
+        while remaining_debt > 0 and years < max_years:
+            years += 1
+            debt_start = remaining_debt
+
+            # Calculate interest on current debt
+            interest = debt_start * rate
+            total_interest += interest
+
+            # Annual special payment from input
+            special_payment = self.input.annual_special_payment
+
+            # Amortization = Annual payment - Interest + Special payment
+            # (Special payment increases principal repayment)
+            amortization = annual_payment - interest + special_payment
+
+            # If amortization is not positive, payment doesn't cover interest
+            if amortization <= 0:
+                return {
+                    "years_to_payoff": None,
+                    "total_interest": None,
+                    "remaining_debt": self.loan_amount,
+                    "monthly_payment": affordable_monthly_payment,
+                    "feasible": False,
+                    "error": f"Monthly payment €{affordable_monthly_payment:.2f} insufficient to cover interest",
+                }
+
+            # Ensure we don't amortize more than remaining debt
+            if amortization > remaining_debt:
+                amortization = remaining_debt
+
+            # New debt after principal repayment
+            debt_end = debt_start - amortization
+
+            # Update remaining debt
+            remaining_debt = debt_end
+
+            # Stop if debt is essentially paid
+            if remaining_debt < 1:
+                remaining_debt = 0
+                break
+
+        if years >= max_years:
+            return {
+                "years_to_payoff": None,
+                "total_interest": None,
+                "remaining_debt": remaining_debt,
+                "monthly_payment": affordable_monthly_payment,
+                "feasible": False,
+                "error": "Loan would take too long to pay off with this payment",
+            }
+
+        # Persist the payment used for this payoff calculation so
+        # subsequent schedule generation uses the same payment.
+        self.annual_payment = annual_payment
+        self.monthly_payment = affordable_monthly_payment
+
+        return {
+            "years_to_payoff": years,
+            "total_interest": total_interest,
+            "remaining_debt": max(0, remaining_debt),
+            "monthly_payment": affordable_monthly_payment,
+            "annual_payment": annual_payment,
+            "feasible": True,
+            "loan_amount": self.loan_amount,
+            "interest_rate": self.input.interest_rate,
+        }
