@@ -264,6 +264,68 @@ def create_layout(lang="en"):
                                             ),
                                         ]
                                     ),
+                                    # Interest rate change section
+                                    html.Div(
+                                        [
+                                            html.Div(
+                                                [
+                                                    dcc.Checklist(
+                                                        id="enable_rate_change",
+                                                        options=[
+                                                            {
+                                                                "label": f" {t('enable_rate_change')}",
+                                                                "value": 1,
+                                                            }
+                                                        ],
+                                                        value=[],
+                                                        style={
+                                                            "marginBottom": "1rem",
+                                                            "fontWeight": "600",
+                                                        },
+                                                    ),
+                                                ],
+                                                style={
+                                                    "padding": "1rem",
+                                                    "backgroundColor": "#e8f4f8",
+                                                    "borderRadius": "6px",
+                                                    "borderLeft": f"4px solid {COLORS['primary']}",
+                                                },
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Label(
+                                                        t("new_interest_rate"),
+                                                        id="new-interest-rate-label",
+                                                        style={
+                                                            "fontWeight": "600",
+                                                            "marginBottom": "0.4rem",
+                                                            "display": "block",
+                                                        },
+                                                    ),
+                                                    dcc.Input(
+                                                        id="new_interest_rate",
+                                                        type="number",
+                                                        value=4.0,
+                                                        step=0.1,
+                                                        min=0,
+                                                        max=20,
+                                                        disabled=True,
+                                                        style={
+                                                            "width": "100%",
+                                                            "padding": "0.7rem",
+                                                            "border": f"1px solid {COLORS['light']}",
+                                                            "borderRadius": "6px",
+                                                            "fontSize": "1rem",
+                                                            "marginBottom": "1rem",
+                                                        },
+                                                    ),
+                                                ],
+                                                id="rate_change_input_container",
+                                                style={"display": "none"},
+                                            ),
+                                        ],
+                                        style={"marginBottom": "1.5rem"},
+                                    ),
                                 ],
                                 style={"marginBottom": "1.5rem"},
                             ),
@@ -411,6 +473,18 @@ def create_layout(lang="en"):
                                             html.Div(
                                                 dcc.Graph(
                                                     id="interest_development_chart"
+                                                ),
+                                                style={
+                                                    "backgroundColor": "white",
+                                                    "padding": "1.5rem",
+                                                    "borderRadius": "8px",
+                                                    "boxShadow": "0 2px 8px rgba(0, 0, 0, 0.1)",
+                                                    "marginBottom": "2rem",
+                                                },
+                                            ),
+                                            html.Div(
+                                                dcc.Graph(
+                                                    id="rate_change_comparison_chart"
                                                 ),
                                                 style={
                                                     "backgroundColor": "white",

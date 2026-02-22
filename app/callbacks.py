@@ -14,6 +14,7 @@ from charts import (
     create_cost_distribution_pie_chart,
     create_interest_curve_chart,
     create_cumulative_progress_chart,
+    create_rate_change_comparison_chart,
 )
 
 
@@ -97,6 +98,63 @@ def register_callbacks(app):
 
     @app.callback(
         [
+            Output("rate_change_input_container", "style"),
+            Output("new_interest_rate", "disabled"),
+            Output("new-interest-rate-label", "children"),
+        ],
+        [
+            Input("enable_rate_change", "value"),
+            Input("language-store", "data"),
+        ],
+    )
+    def toggle_rate_change_input(enable_rate_change, lang):
+        """Toggle visibility of interest rate change input"""
+        t = lambda key: get_text(lang, key)
+        is_enabled = len(enable_rate_change) > 0
+
+        return (
+            {"display": "block"} if is_enabled else {"display": "none"},
+            not is_enabled,
+            t("new_interest_rate"),
+        )
+
+    @app.callback(
+        Output("years_to_show", "max"),
+        [
+            Input("purchase_price", "value"),
+            Input("equity", "value"),
+            Input("interest_rate", "value"),
+            Input("initial_amortization", "value"),
+            Input("interest_binding_years", "value"),
+            Input("annual_special_payment", "value"),
+        ],
+    )
+    def update_slider_max(
+        purchase_price,
+        equity,
+        interest_rate,
+        initial_amortization,
+        interest_binding_years,
+        annual_special_payment,
+    ):
+        """Update the slider max value to the calculated payoff years"""
+        try:
+            input_data = FinancingInput(
+                purchase_price=purchase_price or 0,
+                equity=equity or 0,
+                interest_rate=interest_rate or 0,
+                initial_amortization=initial_amortization or 0,
+                annual_special_payment=annual_special_payment or 0,
+                interest_binding_years=interest_binding_years or 10,
+            )
+            calculator = FinancingCalculator(input_data)
+            payoff_years = calculator.calculate_payoff_years()
+            return payoff_years
+        except:
+            return 50
+
+    @app.callback(
+        [
             Output("summary_cards", "children"),
             Output("key_metrics", "children"),
             Output("table_container", "children"),
@@ -105,6 +163,7 @@ def register_callbacks(app):
             Output("pie_chart", "figure"),
             Output("interest_curve_chart", "figure"),
             Output("interest_development_chart", "figure"),
+            Output("rate_change_comparison_chart", "figure"),
         ],
         [
             Input("purchase_price", "value"),
@@ -115,6 +174,8 @@ def register_callbacks(app):
             Input("annual_special_payment", "value"),
             Input("years_to_show", "value"),
             Input("language-store", "data"),
+            Input("enable_rate_change", "value"),
+            Input("new_interest_rate", "value"),
         ],
     )
     def update_calculations(
@@ -126,6 +187,8 @@ def register_callbacks(app):
         annual_special_payment,
         years_to_show,
         lang,
+        enable_rate_change,
+        new_interest_rate,
     ):
         """Main calculation callback - updates all visualizations and summary data"""
         t = lambda key: get_text(lang, key)
@@ -145,6 +208,7 @@ def register_callbacks(app):
             calculator = FinancingCalculator(input_data)
             schedule = calculator.calculate_schedule(years_to_show or 10)
             summary = calculator.get_summary(years_to_show or 10)
+            payoff_years = calculator.calculate_payoff_years()
             df = calculator.schedule_to_dataframe()
 
             # Rename columns based on language
@@ -185,11 +249,60 @@ def register_callbacks(app):
                     COLORS["danger"],
                 ),
                 create_card(
+                    t("total_payoff_years"),
+                    f"{payoff_years} {t('years_short')}",
+                    COLORS["warning"],
+                ),
+                create_card(
                     f"{t('remaining_debt')} {summary['years']} {t('years_short')}",
                     f"€ {summary['remaining_debt']:,.2f}",
                     COLORS["success"],
                 ),
             ]
+
+            # Add rate change comparison cards if enabled
+            rate_change_result = None
+            if len(enable_rate_change) > 0 and new_interest_rate is not None:
+                rate_change_result = calculator.calculate_with_rate_change(
+                    new_interest_rate
+                )
+
+                summary_cards.extend(
+                    [
+                        create_card(
+                            f"{t('total_interest_with_change')}",
+                            f"€ {rate_change_result['new_total_interest']:,.2f}",
+                            COLORS["danger"],
+                        ),
+                        create_card(
+                            t("interest_difference"),
+                            (
+                                f"€ {rate_change_result['interest_difference']:,.2f}"
+                                if rate_change_result["interest_difference"] > 0
+                                else f"-€ {abs(rate_change_result['interest_difference']):,.2f}"
+                            ),
+                            (
+                                COLORS["success"]
+                                if rate_change_result["interest_difference"] <= 0
+                                else COLORS["danger"]
+                            ),
+                        ),
+                        create_card(
+                            f"{t('payoff_years_with_change')}",
+                            f"{rate_change_result['new_payoff_years']} {t('years_short')}",
+                            COLORS["warning"],
+                        ),
+                        create_card(
+                            t("years_difference"),
+                            f"{rate_change_result['years_difference']:+.0f} {t('years_short')}",
+                            (
+                                COLORS["success"]
+                                if rate_change_result["years_difference"] <= 0
+                                else COLORS["danger"]
+                            ),
+                        ),
+                    ]
+                )
 
             # Create key metrics boxes
             key_metrics = [
@@ -234,6 +347,13 @@ def register_callbacks(app):
             pie_fig = create_cost_distribution_pie_chart(summary, t)
             interest_curve_fig = create_interest_curve_chart(df, t)
             interest_dev_fig = create_cumulative_progress_chart(df, t)
+            
+            # Create rate change comparison chart if rate change is enabled
+            rate_change_fig = create_rate_change_comparison_chart(
+                rate_change_result,
+                input_data.interest_binding_years,
+                t
+            )
 
             return (
                 summary_cards,
@@ -244,6 +364,7 @@ def register_callbacks(app):
                 pie_fig,
                 interest_curve_fig,
                 interest_dev_fig,
+                rate_change_fig,
             )
 
         except Exception as e:
