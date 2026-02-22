@@ -96,6 +96,28 @@ def register_callbacks(app):
         return str(years)
 
     @app.callback(
+        [
+            Output("rate_change_input_container", "style"),
+            Output("new_interest_rate", "disabled"),
+            Output("new-interest-rate-label", "children"),
+        ],
+        [
+            Input("enable_rate_change", "value"),
+            Input("language-store", "data"),
+        ],
+    )
+    def toggle_rate_change_input(enable_rate_change, lang):
+        """Toggle visibility of interest rate change input"""
+        t = lambda key: get_text(lang, key)
+        is_enabled = len(enable_rate_change) > 0
+
+        return (
+            {"display": "block"} if is_enabled else {"display": "none"},
+            not is_enabled,
+            t("new_interest_rate"),
+        )
+
+    @app.callback(
         Output("years_to_show", "max"),
         [
             Input("purchase_price", "value"),
@@ -150,6 +172,8 @@ def register_callbacks(app):
             Input("annual_special_payment", "value"),
             Input("years_to_show", "value"),
             Input("language-store", "data"),
+            Input("enable_rate_change", "value"),
+            Input("new_interest_rate", "value"),
         ],
     )
     def update_calculations(
@@ -161,6 +185,8 @@ def register_callbacks(app):
         annual_special_payment,
         years_to_show,
         lang,
+        enable_rate_change,
+        new_interest_rate,
     ):
         """Main calculation callback - updates all visualizations and summary data"""
         t = lambda key: get_text(lang, key)
@@ -231,6 +257,49 @@ def register_callbacks(app):
                     COLORS["success"],
                 ),
             ]
+
+            # Add rate change comparison cards if enabled
+            if len(enable_rate_change) > 0 and new_interest_rate is not None:
+                rate_change_result = calculator.calculate_with_rate_change(
+                    new_interest_rate
+                )
+
+                summary_cards.extend(
+                    [
+                        create_card(
+                            f"{t('total_interest_with_change')}",
+                            f"€ {rate_change_result['new_total_interest']:,.2f}",
+                            COLORS["danger"],
+                        ),
+                        create_card(
+                            t("interest_difference"),
+                            (
+                                f"€ {rate_change_result['interest_difference']:,.2f}"
+                                if rate_change_result["interest_difference"] > 0
+                                else f"-€ {abs(rate_change_result['interest_difference']):,.2f}"
+                            ),
+                            (
+                                COLORS["success"]
+                                if rate_change_result["interest_difference"] <= 0
+                                else COLORS["danger"]
+                            ),
+                        ),
+                        create_card(
+                            f"{t('payoff_years_with_change')}",
+                            f"{rate_change_result['new_payoff_years']} {t('years_short')}",
+                            COLORS["warning"],
+                        ),
+                        create_card(
+                            t("years_difference"),
+                            f"{rate_change_result['years_difference']:+.0f} {t('years_short')}",
+                            (
+                                COLORS["success"]
+                                if rate_change_result["years_difference"] <= 0
+                                else COLORS["danger"]
+                            ),
+                        ),
+                    ]
+                )
 
             # Create key metrics boxes
             key_metrics = [

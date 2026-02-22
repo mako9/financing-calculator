@@ -154,6 +154,117 @@ class FinancingCalculator:
 
         return max_years
 
+    def calculate_with_rate_change(
+        self, new_interest_rate: float, max_years: int = 100
+    ) -> dict:
+        """
+        Calculate loan payoff with interest rate change after binding period.
+
+        Args:
+            new_interest_rate: New interest rate (in percent) after binding period
+            max_years: Maximum years to calculate
+
+        Returns:
+            Dictionary with comparison between original and changed scenarios
+        """
+        binding_years = self.input.interest_binding_years
+
+        # Calculate original scenario to payoff
+        original_payoff_years = self.calculate_payoff_years(max_years)
+        original_schedule = self.calculate_schedule(original_payoff_years)
+        original_total_interest = sum(e.interest_payment for e in original_schedule)
+
+        # If rate doesn't change, return original values
+        if abs(new_interest_rate - self.input.interest_rate) < 0.01:
+            return {
+                "original_payoff_years": original_payoff_years,
+                "new_payoff_years": original_payoff_years,
+                "original_total_interest": original_total_interest,
+                "new_total_interest": original_total_interest,
+                "interest_difference": 0,
+                "years_difference": 0,
+                "new_interest_rate": new_interest_rate,
+                "original_interest_rate": self.input.interest_rate,
+                "binding_years": binding_years,
+            }
+
+        # Get debt after binding period
+        if binding_years < len(original_schedule):
+            debt_at_change = original_schedule[binding_years - 1].debt_end
+        else:
+            debt_at_change = 0
+
+        if debt_at_change <= 0:
+            # Already paid off during binding period
+            return {
+                "original_payoff_years": original_payoff_years,
+                "new_payoff_years": original_payoff_years,
+                "original_total_interest": original_total_interest,
+                "new_total_interest": original_total_interest,
+                "interest_difference": 0,
+                "years_difference": 0,
+                "new_interest_rate": new_interest_rate,
+                "original_interest_rate": self.input.interest_rate,
+                "binding_years": binding_years,
+            }
+
+        # Calculate new scenario with changed interest rate
+        new_rate = new_interest_rate / 100
+        original_rate = self.input.interest_rate / 100
+
+        # Interest paid during binding period
+        interest_binding_period = sum(
+            e.interest_payment for e in original_schedule[:binding_years]
+        )
+
+        # Recalculate from year binding_years+1 with new rate
+        # Keep the same annual payment as original - only the interest/principal split changes
+        remaining_debt = debt_at_change
+        annual_payment = self.annual_payment
+
+        years_after_change = 0
+        interest_after_change = 0
+
+        for year in range(binding_years + 1, max_years + 1):
+            years_after_change += 1
+
+            # Interest with new rate
+            interest = remaining_debt * new_rate
+            interest_after_change += interest
+
+            # Amortization = Annual payment - Interest + Special payment
+            amortization = annual_payment - interest + self.input.annual_special_payment
+
+            if amortization <= 0:
+                # Payment insufficient to cover interest
+                break
+
+            # Ensure we don't amortize more than remaining debt
+            if amortization > remaining_debt:
+                amortization = remaining_debt
+
+            remaining_debt -= amortization
+
+            if remaining_debt <= 0:
+                break
+
+        total_payoff_years_with_change = binding_years + years_after_change
+        total_interest_with_change = interest_binding_period + interest_after_change
+        interest_difference = total_interest_with_change - original_total_interest
+        years_difference = total_payoff_years_with_change - original_payoff_years
+
+        return {
+            "original_payoff_years": original_payoff_years,
+            "new_payoff_years": total_payoff_years_with_change,
+            "original_total_interest": original_total_interest,
+            "new_total_interest": total_interest_with_change,
+            "interest_difference": interest_difference,
+            "years_difference": years_difference,
+            "new_interest_rate": new_interest_rate,
+            "original_interest_rate": self.input.interest_rate,
+            "binding_years": binding_years,
+        }
+
     def calculate_years_to_payoff(self, affordable_monthly_payment: float) -> dict:
         """
         Calculate how many years needed to pay off loan given an affordable monthly payment.

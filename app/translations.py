@@ -66,6 +66,13 @@ TRANSLATIONS = {
         "total_interest_by_payoff": "Total Interest by Payoff",
         "final_remaining_debt": "Remaining Debt After Period",
         "total_payoff_years": "Total Years to Payoff Loan",
+        "enable_rate_change": "Calculate with Interest Rate Change",
+        "new_interest_rate": "New Interest Rate p.a. (%)",
+        "after_binding_period": "After binding period",
+        "total_interest_with_change": "Total Interest (with change)",
+        "payoff_years_with_change": "Payoff Years (with change)",
+        "interest_difference": "Interest Difference",
+        "years_difference": "Years Difference",
     },
     "de": {
         "app_title": "Baufinanzierung Rechner",
@@ -129,6 +136,13 @@ TRANSLATIONS = {
         "total_interest_by_payoff": "Gesamtzinsen bei Sanierung",
         "final_remaining_debt": "Restschuld am Ende des Zeitraums",
         "total_payoff_years": "Gesamtzahlungsdauer des Darlehens",
+        "enable_rate_change": "Mit Zinsänderung berechnen",
+        "new_interest_rate": "Neuer Sollzins p.a. (%)",
+        "after_binding_period": "Nach Zinsbindung",
+        "total_interest_with_change": "Gezahlte Zinsen (mit Änderung)",
+        "payoff_years_with_change": "Zahlungsdauer (mit Änderung)",
+        "interest_difference": "Zinsunterschied",
+        "years_difference": "Jahresunterschied",
     },
 }
 
