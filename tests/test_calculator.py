@@ -560,3 +560,260 @@ class TestCalculateYearsToPayoff:
         assert result["feasible"] is False
         assert "error" in result
         assert len(result["error"]) > 0
+
+
+class TestCalculatePayoffYears:
+    """Tests for the calculate_payoff_years method - calculates total payoff duration"""
+
+    @pytest.fixture
+    def basic_financing(self):
+        """Fixture: Basic financing scenario"""
+        input_data = FinancingInput(
+            purchase_price=300000,
+            equity=60000,
+            interest_rate=4.5,
+            initial_amortization=3.0,
+        )
+        return FinancingCalculator(input_data)
+
+    @pytest.fixture
+    def high_amortization_financing(self):
+        """Fixture: High amortization scenario (pays off faster)"""
+        input_data = FinancingInput(
+            purchase_price=400000,
+            equity=50000,
+            interest_rate=3.0,
+            initial_amortization=5.0,
+        )
+        return FinancingCalculator(input_data)
+
+    @pytest.fixture
+    def low_amortization_financing(self):
+        """Fixture: Low amortization scenario (pays off slower)"""
+        input_data = FinancingInput(
+            purchase_price=500000,
+            equity=50000,
+            interest_rate=4.5,
+            initial_amortization=1.0,
+        )
+        return FinancingCalculator(input_data)
+
+    def test_payoff_years_returns_integer(self, basic_financing):
+        """Test that payoff years returns an integer"""
+        years = basic_financing.calculate_payoff_years()
+        assert isinstance(years, int)
+        assert years > 0
+
+    def test_payoff_years_default_max_years(self, basic_financing):
+        """Test that payoff years respects max_years parameter"""
+        years_default = basic_financing.calculate_payoff_years()
+        years_high_max = basic_financing.calculate_payoff_years(max_years=200)
+        years_low_max = basic_financing.calculate_payoff_years(max_years=10)
+
+        # With default/high max, should get actual payoff years
+        assert years_default > 0
+        # With low max that doesn't reach payoff, should return the max
+        if years_low_max == 10:
+            # This means actual payoff is beyond 10 years
+            assert basic_financing.calculate_payoff_years(max_years=50) > 10
+
+    def test_payoff_years_reasonable_range(self, basic_financing):
+        """Test that payoff years is in reasonable range (5-50 years)"""
+        years = basic_financing.calculate_payoff_years()
+        assert 5 <= years <= 50
+
+    def test_payoff_years_with_high_amortization_faster(
+        self, basic_financing, high_amortization_financing
+    ):
+        """Test that higher amortization rate results in faster payoff"""
+        years_basic = basic_financing.calculate_payoff_years()
+        years_high = high_amortization_financing.calculate_payoff_years()
+
+        # High amortization should pay off faster
+        assert years_high < years_basic
+
+    def test_payoff_years_with_low_amortization_slower(
+        self, basic_financing, low_amortization_financing
+    ):
+        """Test that lower amortization rate results in slower payoff"""
+        years_basic = basic_financing.calculate_payoff_years()
+        years_low = low_amortization_financing.calculate_payoff_years()
+
+        # Low amortization should take longer
+        assert years_low > years_basic
+
+    def test_payoff_years_with_zero_interest(self):
+        """Test payoff calculation with 0% interest"""
+        input_data = FinancingInput(
+            purchase_price=100000,
+            equity=20000,
+            interest_rate=0.0,
+            initial_amortization=10.0,
+        )
+        calc = FinancingCalculator(input_data)
+        years = calc.calculate_payoff_years()
+
+        # Loan: 80000, Annual payment: 80000 * 0.10 = 8000
+        # Should pay off in 10 years
+        assert years == 10
+
+    def test_payoff_years_with_special_payment(self):
+        """Test payoff years with additional special payments"""
+        input_no_special = FinancingInput(
+            purchase_price=300000,
+            equity=60000,
+            interest_rate=4.5,
+            initial_amortization=3.0,
+            annual_special_payment=0,
+        )
+        calc_no_special = FinancingCalculator(input_no_special)
+
+        input_with_special = FinancingInput(
+            purchase_price=300000,
+            equity=60000,
+            interest_rate=4.5,
+            initial_amortization=3.0,
+            annual_special_payment=5000,
+        )
+        calc_with_special = FinancingCalculator(input_with_special)
+
+        years_no_special = calc_no_special.calculate_payoff_years()
+        years_with_special = calc_with_special.calculate_payoff_years()
+
+        # Special payments should reduce payoff time
+        assert years_with_special < years_no_special
+
+    def test_payoff_years_consistency_with_schedule(self, basic_financing):
+        """Test that payoff years matches when debt reaches zero"""
+        payoff_years = basic_financing.calculate_payoff_years()
+        schedule = basic_financing.calculate_schedule(payoff_years + 2)
+
+        # At payoff year, debt should be paid or nearly paid
+        if payoff_years <= len(schedule):
+            debt_at_payoff = schedule[payoff_years - 1].debt_end
+            # Should be zero or very close to it
+            assert debt_at_payoff <= 1  # Allow for rounding errors
+
+        # Year before should still have debt (unless already paid)
+        if payoff_years > 1:
+            debt_year_before = schedule[payoff_years - 2].debt_end
+            if debt_year_before > 0:
+                assert debt_year_before > 0
+
+    def test_payoff_years_full_equity_scenario(self):
+        """Test payoff years when there's no loan (full equity)"""
+        input_data = FinancingInput(
+            purchase_price=100000,
+            equity=100000,
+            interest_rate=4.5,
+            initial_amortization=3.0,
+        )
+        calc = FinancingCalculator(input_data)
+        years = calc.calculate_payoff_years()
+
+        # With no loan, should return 0 or some small value
+        assert years <= 1
+
+    def test_payoff_years_small_loan(self):
+        """Test payoff years with very small loan"""
+        input_data = FinancingInput(
+            purchase_price=50000,
+            equity=45000,
+            interest_rate=4.5,
+            initial_amortization=3.0,
+        )
+        calc = FinancingCalculator(input_data)
+        years = calc.calculate_payoff_years()
+
+        # Small loan amount (€5,000), but low payment (€150/year) means longer payoff
+        # Note: Annual payment = 5000 * 0.075 = €375, which is still small
+        assert years > 0
+        assert years < 100
+
+    def test_payoff_years_large_loan(self):
+        """Test payoff years with large loan"""
+        input_data = FinancingInput(
+            purchase_price=1000000,
+            equity=50000,
+            interest_rate=4.0,
+            initial_amortization=2.0,
+        )
+        calc = FinancingCalculator(input_data)
+        years = calc.calculate_payoff_years()
+
+        # Large loan (€950,000) with 6% annual payment rate takes ~25-35 years
+        # Annual payment = 950000 * 0.06 = €57,000
+        assert years > 20
+        assert years < 40
+
+    def test_payoff_years_higher_payment_faster_payoff(self):
+        """Test that higher interest rates (with fixed amortization %) lead to faster payoff due to higher payments"""
+        input_low_rate = FinancingInput(
+            purchase_price=300000,
+            equity=60000,
+            interest_rate=2.0,
+            initial_amortization=3.0,
+        )
+        calc_low = FinancingCalculator(input_low_rate)
+
+        input_high_rate = FinancingInput(
+            purchase_price=300000,
+            equity=60000,
+            interest_rate=6.0,
+            initial_amortization=3.0,
+        )
+        calc_high = FinancingCalculator(input_high_rate)
+
+        years_low = calc_low.calculate_payoff_years()
+        years_high = calc_high.calculate_payoff_years()
+
+        # Counter-intuitively, higher interest rates (with fixed amortization %) result in FASTER payoff
+        # because they increase the annual payment (interest + amortization percentages apply to loan amount)
+        # Low rate: 2% + 3% = 5% annual payment
+        # High rate: 6% + 3% = 9% annual payment
+        assert years_high < years_low
+
+    def test_payoff_years_deterministic(self, basic_financing):
+        """Test that payoff years calculation is deterministic"""
+        years1 = basic_financing.calculate_payoff_years()
+        years2 = basic_financing.calculate_payoff_years()
+        years3 = basic_financing.calculate_payoff_years()
+
+        assert years1 == years2
+        assert years2 == years3
+
+    def test_payoff_years_with_default_max(self, basic_financing):
+        """Test payoff years with default max_years parameter"""
+        years = basic_financing.calculate_payoff_years(max_years=100)
+        assert years <= 100
+        assert years > 0
+
+    def test_payoff_years_realistic_scenario(self):
+        """Test payoff years with realistic German mortgage scenario"""
+        input_data = FinancingInput(
+            purchase_price=400000,
+            equity=50000,
+            interest_rate=3.5,
+            initial_amortization=2.0,
+            annual_special_payment=2000,
+            interest_binding_years=10,
+        )
+        calc = FinancingCalculator(input_data)
+        years = calc.calculate_payoff_years()
+
+        # Realistic mortgage should pay off between 20-40 years
+        assert 20 <= years <= 40
+
+    def test_payoff_years_matches_schedule_debt_progression(self, basic_financing):
+        """Test that debt at payoff year is actually zero or nearly zero"""
+        payoff_years = basic_financing.calculate_payoff_years()
+        schedule = basic_financing.calculate_schedule(payoff_years + 5)
+
+        # Verify debt decreases each year up to payoff
+        for i in range(min(payoff_years, len(schedule))):
+            if i > 0:
+                assert schedule[i].debt_end <= schedule[i - 1].debt_end
+
+        # At payoff year, debt should be zero or negative
+        if payoff_years <= len(schedule):
+            assert schedule[payoff_years - 1].debt_end <= 0

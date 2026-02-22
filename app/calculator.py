@@ -123,6 +123,37 @@ class FinancingCalculator:
         }
         return pd.DataFrame(data)
 
+    def calculate_payoff_years(self, max_years: int = 100) -> int:
+        """
+        Calculate total years until the loan is fully paid back.
+
+        Args:
+            max_years: Maximum years to calculate (default 100)
+
+        Returns:
+            Number of years until loan is paid off, or max_years if not paid by then
+        """
+        remaining_debt = self.loan_amount
+        rate = self.input.interest_rate / 100
+
+        for year in range(1, max_years + 1):
+            # Interest for this year
+            interest = remaining_debt * rate
+
+            # Amortization = Annual payment - Interest + Special payment
+            amortization = (
+                self.annual_payment - interest + self.input.annual_special_payment
+            )
+
+            # New debt
+            remaining_debt -= amortization
+
+            # Check if loan is paid off (essentially zero or negative debt)
+            if remaining_debt <= 0:
+                return year
+
+        return max_years
+
     def calculate_years_to_payoff(self, affordable_monthly_payment: float) -> dict:
         """
         Calculate how many years needed to pay off loan given an affordable monthly payment.

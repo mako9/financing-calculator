@@ -65,6 +65,7 @@ TRANSLATIONS = {
         "years_needed": "Years Needed to Payoff",
         "total_interest_by_payoff": "Total Interest by Payoff",
         "final_remaining_debt": "Remaining Debt After Period",
+        "total_payoff_years": "Total Years to Payoff Loan",
     },
     "de": {
         "app_title": "Baufinanzierung Rechner",
@@ -127,6 +128,7 @@ TRANSLATIONS = {
         "years_needed": "Benötigte Jahre bis Sanierung",
         "total_interest_by_payoff": "Gesamtzinsen bei Sanierung",
         "final_remaining_debt": "Restschuld am Ende des Zeitraums",
+        "total_payoff_years": "Gesamtzahlungsdauer des Darlehens",
     },
 }
 

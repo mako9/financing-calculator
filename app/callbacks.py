@@ -96,6 +96,41 @@ def register_callbacks(app):
         return str(years)
 
     @app.callback(
+        Output("years_to_show", "max"),
+        [
+            Input("purchase_price", "value"),
+            Input("equity", "value"),
+            Input("interest_rate", "value"),
+            Input("initial_amortization", "value"),
+            Input("interest_binding_years", "value"),
+            Input("annual_special_payment", "value"),
+        ],
+    )
+    def update_slider_max(
+        purchase_price,
+        equity,
+        interest_rate,
+        initial_amortization,
+        interest_binding_years,
+        annual_special_payment,
+    ):
+        """Update the slider max value to the calculated payoff years"""
+        try:
+            input_data = FinancingInput(
+                purchase_price=purchase_price or 0,
+                equity=equity or 0,
+                interest_rate=interest_rate or 0,
+                initial_amortization=initial_amortization or 0,
+                annual_special_payment=annual_special_payment or 0,
+                interest_binding_years=interest_binding_years or 10,
+            )
+            calculator = FinancingCalculator(input_data)
+            payoff_years = calculator.calculate_payoff_years()
+            return payoff_years
+        except:
+            return 50
+
+    @app.callback(
         [
             Output("summary_cards", "children"),
             Output("key_metrics", "children"),
@@ -145,6 +180,7 @@ def register_callbacks(app):
             calculator = FinancingCalculator(input_data)
             schedule = calculator.calculate_schedule(years_to_show or 10)
             summary = calculator.get_summary(years_to_show or 10)
+            payoff_years = calculator.calculate_payoff_years()
             df = calculator.schedule_to_dataframe()
 
             # Rename columns based on language
@@ -183,6 +219,11 @@ def register_callbacks(app):
                     t("total_interest"),
                     f"€ {summary['total_interest']:,.2f}",
                     COLORS["danger"],
+                ),
+                create_card(
+                    t("total_payoff_years"),
+                    f"{payoff_years} {t('years_short')}",
+                    COLORS["warning"],
                 ),
                 create_card(
                     f"{t('remaining_debt')} {summary['years']} {t('years_short')}",
