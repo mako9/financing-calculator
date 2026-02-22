@@ -73,6 +73,10 @@ TRANSLATIONS = {
         "payoff_years_with_change": "Payoff Years (with change)",
         "interest_difference": "Interest Difference",
         "years_difference": "Years Difference",
+        "rate_change_comparison": "Interest Comparison: Original vs Rate Change",
+        "original_rate": "Original Rate",
+        "with_rate_change": "With Rate Change",
+        "binding_period_end": "Binding Period End",
     },
     "de": {
         "app_title": "Baufinanzierung Rechner",
@@ -143,6 +147,10 @@ TRANSLATIONS = {
         "payoff_years_with_change": "Zahlungsdauer (mit Änderung)",
         "interest_difference": "Zinsunterschied",
         "years_difference": "Jahresunterschied",
+        "rate_change_comparison": "Zinsvergleich: Original vs Zinsänderung",
+        "original_rate": "Originalzinssatz",
+        "with_rate_change": "Mit Zinsänderung",
+        "binding_period_end": "Ende Zinsbindung",
     },
 }
 

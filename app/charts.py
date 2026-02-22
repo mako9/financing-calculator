@@ -154,3 +154,112 @@ def create_cumulative_progress_chart(df, lang_text_func):
         height=CHART_HEIGHT,
     )
     return interest_dev_fig
+
+def create_rate_change_comparison_chart(rate_change_result, binding_years, lang_text_func):
+    """Create chart comparing cumulative interest with original vs changed rate"""
+    t = lang_text_func
+    
+    if not rate_change_result or rate_change_result.get("years_difference") == 0:
+        # If no rate change or same rate, return empty figure
+        fig = go.Figure()
+        fig.update_layout(
+            title=t("rate_change_comparison"),
+            template="plotly_white",
+            height=CHART_HEIGHT,
+        )
+        return fig
+
+    original_payoff = rate_change_result["original_payoff_years"]
+    new_payoff = rate_change_result["new_payoff_years"]
+    max_years = max(original_payoff, new_payoff) + 1
+
+    # Create scenarios
+    years_list = list(range(1, max_years + 1))
+    
+    # Original scenario: constant rate throughout
+    original_rate = rate_change_result["original_interest_rate"] / 100
+    cumulative_original = []
+    
+    # Changed scenario: rate changes after binding period
+    new_rate = rate_change_result["new_interest_rate"] / 100
+    cumulative_changed = []
+    
+    # Calculate cumulative interest for both scenarios
+    # For original: use the actual calculation
+    original_total = rate_change_result["original_total_interest"]
+    changed_total = rate_change_result["new_total_interest"]
+    
+    # Distribute interest proportionally over years for visualization
+    for year in years_list:
+        if year <= original_payoff:
+            cumulative_original.append((year / original_payoff) * original_total)
+        else:
+            cumulative_original.append(original_total)
+            
+        if year <= new_payoff:
+            if year <= binding_years:
+                # During binding period, same as original
+                cumulative_changed.append((year / binding_years) * (
+                    rate_change_result["original_total_interest"] * 
+                    (binding_years / original_payoff)
+                ))
+            else:
+                # After binding period with new rate
+                years_after = year - binding_years
+                interest_during = rate_change_result["original_total_interest"] * (binding_years / original_payoff)
+                interest_after_portion = (years_after / (new_payoff - binding_years)) * (changed_total - interest_during)
+                cumulative_changed.append(interest_during + interest_after_portion)
+        else:
+            cumulative_changed.append(changed_total)
+
+    fig = go.Figure()
+    
+    # Add original scenario line
+    fig.add_trace(
+        go.Scatter(
+            x=years_list,
+            y=cumulative_original,
+            mode="lines+markers",
+            name=t("original_rate"),
+            line=dict(color=COLORS["success"], width=3),
+            marker=dict(size=6),
+            fill="tozeroy",
+            fillcolor="rgba(78, 205, 196, 0.2)",
+        )
+    )
+    
+    # Add changed scenario line
+    fig.add_trace(
+        go.Scatter(
+            x=years_list,
+            y=cumulative_changed,
+            mode="lines+markers",
+            name=t("with_rate_change"),
+            line=dict(color=COLORS["danger"], width=3),
+            marker=dict(size=6),
+            fill="tozeroy",
+            fillcolor="rgba(255, 107, 107, 0.2)",
+        )
+    )
+    
+    # Add binding period marker
+    if binding_years < max_years:
+        fig.add_vline(
+            x=binding_years,
+            line_dash="dash",
+            line_color=COLORS["warning"],
+            annotation_text=t("binding_period_end"),
+            annotation_position="top left",
+        )
+    
+    fig.update_layout(
+        title=t("rate_change_comparison"),
+        xaxis_title=t("year"),
+        yaxis_title=t("cumulative_interest"),
+        hovermode="x unified",
+        template="plotly_white",
+        height=CHART_HEIGHT,
+        showlegend=True,
+    )
+    
+    return fig

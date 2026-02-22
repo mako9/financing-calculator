@@ -14,6 +14,7 @@ from charts import (
     create_cost_distribution_pie_chart,
     create_interest_curve_chart,
     create_cumulative_progress_chart,
+    create_rate_change_comparison_chart,
 )
 
 
@@ -162,6 +163,7 @@ def register_callbacks(app):
             Output("pie_chart", "figure"),
             Output("interest_curve_chart", "figure"),
             Output("interest_development_chart", "figure"),
+            Output("rate_change_comparison_chart", "figure"),
         ],
         [
             Input("purchase_price", "value"),
@@ -259,6 +261,7 @@ def register_callbacks(app):
             ]
 
             # Add rate change comparison cards if enabled
+            rate_change_result = None
             if len(enable_rate_change) > 0 and new_interest_rate is not None:
                 rate_change_result = calculator.calculate_with_rate_change(
                     new_interest_rate
@@ -344,6 +347,13 @@ def register_callbacks(app):
             pie_fig = create_cost_distribution_pie_chart(summary, t)
             interest_curve_fig = create_interest_curve_chart(df, t)
             interest_dev_fig = create_cumulative_progress_chart(df, t)
+            
+            # Create rate change comparison chart if rate change is enabled
+            rate_change_fig = create_rate_change_comparison_chart(
+                rate_change_result,
+                input_data.interest_binding_years,
+                t
+            )
 
             return (
                 summary_cards,
@@ -354,6 +364,7 @@ def register_callbacks(app):
                 pie_fig,
                 interest_curve_fig,
                 interest_dev_fig,
+                rate_change_fig,
             )
 
         except Exception as e:
