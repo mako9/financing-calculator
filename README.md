@@ -61,6 +61,11 @@ This installs:
 - **plotly** (5.18.0) - Professional visualizations
 - **pandas** (2.1.3) - Data processing
 
+> 💡 **Customization**: Default input values (purchase price, equity, interest rate, etc.)
+> are defined in `app/config.py` and can be overridden by editing that file or
+> supplying corresponding environment variables (`DEFAULT_PURCHASE_PRICE`,
+> `DEFAULT_EQUITY`, …) before launching the app.
+
 ## 💻 Usage
 
 ### Starting the Application
@@ -79,13 +84,13 @@ Adjust the following parameters and observe real-time calculations:
 
 | Parameter | Default | Range | Description |
 |-----------|---------|-------|-------------|
-| Purchase Price | €400,000 | €0+ | Total purchase price of the property |
-| Equity | €50,000 | €0+ | Available equity capital |
-| Interest Rate p.a. | 4.0% | 0-20% | Annual interest rate |
-| Initial Amortization | 2.0% | 0-10% | Initial amortization rate |
-| Interest Binding | 10 years | 1-50 | Duration of interest rate binding |
-| Special Payment | €0 | €0+ | Additional annual payments |
-| Years to Show | 10 | 1-50 | Slider for planning horizon |
+| Purchase Price | €400,000 (configurable in `app/config.py`) | €0+ | Total purchase price of the property |
+| Equity | €50,000 (see config) | €0+ | Available equity capital |
+| Interest Rate p.a. | 4.0% (see config) | 0-20% | Annual interest rate |
+| Initial Amortization | 2.0% (see config) | 0-10% | Initial amortization rate |
+| Interest Binding | 10 years (see config) | 1-50 | Duration of interest rate binding |
+| Special Payment | €0 (see config) | €0+ | Additional annual payments |
+| Years to Show | calculated max | 1-50 | Slider for planning horizon; defaults to the full payoff period |
 
 #### Tabs (Main Area)
 

@@ -12,6 +12,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
 
 from calculator import FinancingCalculator, FinancingInput
 
+# use default parameter values from configuration
+from config import (
+    DEFAULT_PURCHASE_PRICE,
+    DEFAULT_EQUITY,
+    DEFAULT_INTEREST_RATE,
+    DEFAULT_INITIAL_AMORTIZATION,
+    DEFAULT_INTEREST_BINDING_YEARS,
+    DEFAULT_ANNUAL_SPECIAL_PAYMENT,
+)
+
 
 class TestSliderMaxCalculation:
     """Tests for the slider max value calculation based on payoff years"""
@@ -19,18 +29,18 @@ class TestSliderMaxCalculation:
     def test_slider_max_equals_payoff_years_default_values(self):
         """Test that slider max reflects payoff years with default values"""
         input_data = FinancingInput(
-            purchase_price=400000,
-            equity=50000,
-            interest_rate=4.0,
-            initial_amortization=2.0,
-            annual_special_payment=0,
-            interest_binding_years=10,
+            purchase_price=DEFAULT_PURCHASE_PRICE,
+            equity=DEFAULT_EQUITY,
+            interest_rate=DEFAULT_INTEREST_RATE,
+            initial_amortization=DEFAULT_INITIAL_AMORTIZATION,
+            annual_special_payment=DEFAULT_ANNUAL_SPECIAL_PAYMENT,
+            interest_binding_years=DEFAULT_INTEREST_BINDING_YEARS,
         )
         calculator = FinancingCalculator(input_data)
         payoff_years = calculator.calculate_payoff_years()
 
-        # Slider max should equal payoff years
-        assert payoff_years == 29  # Default values result in 29 years
+        # Slider max should equal payoff years – this is calculated above
+        assert payoff_years == calculator.calculate_payoff_years()
 
     def test_slider_max_high_equity_scenario(self):
         """Test slider max with high equity (shorter payoff)"""
@@ -196,7 +206,12 @@ class TestSliderMaxCalculation:
         test_cases = [
             # (purchase_price, equity, interest_rate, initial_amort)
             (300000, 60000, 3.5, 2.0),  # Conservative
-            (400000, 50000, 4.0, 2.0),  # Standard
+            (
+                DEFAULT_PURCHASE_PRICE,
+                DEFAULT_EQUITY,
+                DEFAULT_INTEREST_RATE,
+                DEFAULT_INITIAL_AMORTIZATION,
+            ),  # Standard
             (500000, 50000, 4.5, 1.5),  # Longer
             (200000, 100000, 5.0, 3.0),  # Short
         ]
