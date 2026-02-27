@@ -6,7 +6,7 @@ Handles all Dash callbacks for user interactions and data updates
 from dash import Input, Output, State, dcc, html
 from calculator import FinancingCalculator, FinancingInput
 from components import create_card, create_metric_box, create_table
-from config import COLORS
+from config import COLORS, DEFAULT_INTEREST_BINDING_YEARS
 from translations import get_text
 from charts import (
     create_debt_development_chart,
@@ -118,8 +118,13 @@ def register_callbacks(app):
             t("new_interest_rate"),
         )
 
+    # Produces max, current slider value, and store copy of payoff years
     @app.callback(
-        Output("years_to_show", "max"),
+        [
+            Output("years_to_show", "max"),
+            Output("years_to_show", "value"),
+            Output("payoff_years_store", "data"),
+        ],
         [
             Input("purchase_price", "value"),
             Input("equity", "value"),
@@ -137,7 +142,7 @@ def register_callbacks(app):
         interest_binding_years,
         annual_special_payment,
     ):
-        """Update the slider max value to the calculated payoff years"""
+        """Update the slider max/value/store with calculated payoff years"""
         try:
             input_data = FinancingInput(
                 purchase_price=purchase_price or 0,
@@ -145,13 +150,13 @@ def register_callbacks(app):
                 interest_rate=interest_rate or 0,
                 initial_amortization=initial_amortization or 0,
                 annual_special_payment=annual_special_payment or 0,
-                interest_binding_years=interest_binding_years or 10,
+                interest_binding_years=interest_binding_years or DEFAULT_INTEREST_BINDING_YEARS,
             )
             calculator = FinancingCalculator(input_data)
             payoff_years = calculator.calculate_payoff_years()
-            return payoff_years
+            return payoff_years, payoff_years, payoff_years
         except:
-            return 50
+            return 50, 50, 50
 
     @app.callback(
         [
@@ -176,6 +181,7 @@ def register_callbacks(app):
             Input("language-store", "data"),
             Input("enable_rate_change", "value"),
             Input("new_interest_rate", "value"),
+        Input("payoff_years_store", "data"),
         ],
     )
     def update_calculations(
@@ -189,6 +195,7 @@ def register_callbacks(app):
         lang,
         enable_rate_change,
         new_interest_rate,
+        payoff_years_store,
     ):
         """Main calculation callback - updates all visualizations and summary data"""
         t = lambda key: get_text(lang, key)
@@ -201,13 +208,21 @@ def register_callbacks(app):
                 interest_rate=interest_rate or 0,
                 initial_amortization=initial_amortization or 0,
                 annual_special_payment=annual_special_payment or 0,
-                interest_binding_years=interest_binding_years or 10,
+                interest_binding_years=interest_binding_years or DEFAULT_INTEREST_BINDING_YEARS,
             )
 
             # Perform calculations
             calculator = FinancingCalculator(input_data)
-            schedule = calculator.calculate_schedule(years_to_show or 10)
-            summary = calculator.get_summary(years_to_show or 10)
+            # determine how many years should be shown
+            if years_to_show:
+                years = years_to_show
+            elif payoff_years_store is not None:
+                years = payoff_years_store
+            else:
+                years = calculator.calculate_payoff_years()
+
+            schedule = calculator.calculate_schedule(years)
+            summary = calculator.get_summary(years)
             payoff_years = calculator.calculate_payoff_years()
             df = calculator.schedule_to_dataframe()
 
@@ -347,12 +362,10 @@ def register_callbacks(app):
             pie_fig = create_cost_distribution_pie_chart(summary, t)
             interest_curve_fig = create_interest_curve_chart(df, t)
             interest_dev_fig = create_cumulative_progress_chart(df, t)
-            
+
             # Create rate change comparison chart if rate change is enabled
             rate_change_fig = create_rate_change_comparison_chart(
-                rate_change_result,
-                input_data.interest_binding_years,
-                t
+                rate_change_result, input_data.interest_binding_years, t
             )
 
             return (
@@ -387,6 +400,7 @@ def register_callbacks(app):
             State("interest_binding_years", "value"),
             State("annual_special_payment", "value"),
             State("years_to_show", "value"),
+            State("payoff_years_store", "data"),
             State("language-store", "data"),
         ],
         prevent_initial_call=True,
@@ -400,6 +414,7 @@ def register_callbacks(app):
         interest_binding_years,
         annual_special_payment,
         years_to_show,
+        payoff_years_store,
         lang,
     ):
         """Handle CSV export button click"""
@@ -409,10 +424,11 @@ def register_callbacks(app):
             interest_rate=interest_rate or 0,
             initial_amortization=initial_amortization or 0,
             annual_special_payment=annual_special_payment or 0,
-            interest_binding_years=interest_binding_years or 10,
+            interest_binding_years=interest_binding_years or DEFAULT_INTEREST_BINDING_YEARS,
         )
         calculator = FinancingCalculator(input_data)
-        calculator.calculate_schedule(years_to_show or 10)
+        years = years_to_show or payoff_years_store or calculator.calculate_payoff_years()
+        calculator.calculate_schedule(years)
         df = calculator.schedule_to_dataframe()
         filename = get_text(lang, "export_csv_filename")
         return dcc.send_data_frame(df.to_csv, filename)
@@ -428,6 +444,7 @@ def register_callbacks(app):
             State("interest_binding_years", "value"),
             State("annual_special_payment", "value"),
             State("years_to_show", "value"),
+            State("payoff_years_store", "data"),
             State("language-store", "data"),
         ],
         prevent_initial_call=True,
@@ -441,6 +458,7 @@ def register_callbacks(app):
         interest_binding_years,
         annual_special_payment,
         years_to_show,
+        payoff_years_store,
         lang,
     ):
         """Handle JSON export button click"""
@@ -450,11 +468,14 @@ def register_callbacks(app):
             interest_rate=interest_rate or 0,
             initial_amortization=initial_amortization or 0,
             annual_special_payment=annual_special_payment or 0,
-            interest_binding_years=interest_binding_years or 10,
+            interest_binding_years=interest_binding_years or DEFAULT_INTEREST_BINDING_YEARS,
         )
         calculator = FinancingCalculator(input_data)
-        schedule = calculator.calculate_schedule(years_to_show or 10)
-        summary = calculator.get_summary(years_to_show or 10)
+        years = (
+            years_to_show or payoff_years_store or calculator.calculate_payoff_years()
+        )
+        schedule = calculator.calculate_schedule(years)
+        summary = calculator.get_summary(years)
 
         data = {
             "summary": summary,

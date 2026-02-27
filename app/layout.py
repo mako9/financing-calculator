@@ -5,7 +5,35 @@ Main dashboard layout structure with all tabs and components
 
 from dash import dcc, html
 from translations import get_text
-from config import COLORS, SIDEBAR_WIDTH, BORDER_RADIUS, BOX_SHADOW, PRIMARY_FONT
+from config import (
+    COLORS,
+    SIDEBAR_WIDTH,
+    BORDER_RADIUS,
+    BOX_SHADOW,
+    PRIMARY_FONT,
+    DEFAULT_PURCHASE_PRICE,
+    DEFAULT_EQUITY,
+    DEFAULT_INTEREST_RATE,
+    DEFAULT_INITIAL_AMORTIZATION,
+    DEFAULT_INTEREST_BINDING_YEARS,
+    DEFAULT_ANNUAL_SPECIAL_PAYMENT,
+)
+
+# helper to compute initial years-to-show using the same calculator logic
+from calculator import FinancingCalculator, FinancingInput
+
+def calculate_default_years() -> int:
+    """Return payoff years for the built-in default parameters."""
+    default_input = FinancingInput(
+        purchase_price=DEFAULT_PURCHASE_PRICE,
+        equity=DEFAULT_EQUITY,
+        interest_rate=DEFAULT_INTEREST_RATE,
+        initial_amortization=DEFAULT_INITIAL_AMORTIZATION,
+        annual_special_payment=DEFAULT_ANNUAL_SPECIAL_PAYMENT,
+        interest_binding_years=DEFAULT_INTEREST_BINDING_YEARS,
+    )
+    calc = FinancingCalculator(default_input)
+    return calc.calculate_payoff_years()
 
 
 def create_layout(lang="en"):
@@ -15,6 +43,7 @@ def create_layout(lang="en"):
     return html.Div(
         [
             dcc.Store(id="language-store", data=lang),
+            dcc.Store(id="payoff_years_store", data=None),  # cached payoff years
             # Header with Language Selector
             html.Div(
                 [
@@ -114,7 +143,7 @@ def create_layout(lang="en"):
                                             dcc.Input(
                                                 id="purchase_price",
                                                 type="number",
-                                                value=400000,
+                                                value=DEFAULT_PURCHASE_PRICE,
                                                 step=10000,
                                                 style={
                                                     "width": "100%",
@@ -140,7 +169,7 @@ def create_layout(lang="en"):
                                             dcc.Input(
                                                 id="equity",
                                                 type="number",
-                                                value=50000,
+                                                value=DEFAULT_EQUITY,
                                                 step=5000,
                                                 style={
                                                     "width": "100%",
@@ -166,7 +195,7 @@ def create_layout(lang="en"):
                                             dcc.Input(
                                                 id="interest_rate",
                                                 type="number",
-                                                value=4.0,
+                                                value=DEFAULT_INTEREST_RATE,
                                                 step=0.1,
                                                 min=0,
                                                 max=20,
@@ -194,7 +223,7 @@ def create_layout(lang="en"):
                                             dcc.Input(
                                                 id="initial_amortization",
                                                 type="number",
-                                                value=2.0,
+                                                value=DEFAULT_INITIAL_AMORTIZATION,
                                                 step=0.1,
                                                 min=0,
                                                 max=10,
@@ -222,7 +251,7 @@ def create_layout(lang="en"):
                                             dcc.Input(
                                                 id="interest_binding_years",
                                                 type="number",
-                                                value=10,
+                                                value=DEFAULT_INTEREST_BINDING_YEARS,
                                                 step=1,
                                                 min=1,
                                                 max=50,
@@ -250,7 +279,7 @@ def create_layout(lang="en"):
                                             dcc.Input(
                                                 id="annual_special_payment",
                                                 type="number",
-                                                value=0,
+                                                value=DEFAULT_ANNUAL_SPECIAL_PAYMENT,
                                                 step=1000,
                                                 min=0,
                                                 style={
@@ -355,7 +384,8 @@ def create_layout(lang="en"):
                                         min=1,
                                         max=50,
                                         step=1,
-                                        value=10,
+                                        # default shows entire payoff horizon
+                                        value=calculate_default_years(),
                                         marks={i: str(i) for i in range(0, 51, 5)},
                                         tooltip={
                                             "placement": "bottom",

@@ -36,5 +36,40 @@ BORDER_RADIUS = "8px"
 BOX_SHADOW = "0 2px 8px rgba(0, 0, 0, 0.1)"
 TABLE_FONT_SIZE = "0.95rem"
 
+# Default financing input values.  These may be overridden with
+# environment variables (e.g. export DEFAULT_PURCHASE_PRICE=500000) which
+# makes the app easier to configure in different deployments.
+import os
+
+
+def _env_float(key: str, default: float) -> float:
+    val = os.getenv(key)
+    if val is None:
+        return default
+    try:
+        return float(val)
+    except ValueError:
+        return default
+
+
+def _env_int(key: str, default: int) -> int:
+    val = os.getenv(key)
+    if val is None:
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        return default
+
+
+DEFAULT_PURCHASE_PRICE = _env_float("DEFAULT_PURCHASE_PRICE", 400000)
+DEFAULT_EQUITY = _env_float("DEFAULT_EQUITY", 50000)
+DEFAULT_INTEREST_RATE = _env_float("DEFAULT_INTEREST_RATE", 4.0)  # percent p.a.
+DEFAULT_INITIAL_AMORTIZATION = _env_float(
+    "DEFAULT_INITIAL_AMORTIZATION", 2.0
+)  # percent p.a.
+DEFAULT_INTEREST_BINDING_YEARS = _env_int("DEFAULT_INTEREST_BINDING_YEARS", 10)
+DEFAULT_ANNUAL_SPECIAL_PAYMENT = _env_float("DEFAULT_ANNUAL_SPECIAL_PAYMENT", 0.0)
+
 # Font settings
 PRIMARY_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
