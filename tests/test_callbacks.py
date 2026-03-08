@@ -11,6 +11,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
 
 from calculator import FinancingCalculator, FinancingInput
+from callbacks import build_summary_cards
+from translations import get_text
 
 # use default parameter values from configuration
 from config import (
@@ -322,6 +324,64 @@ class TestCallbackIntegration:
         # Both should be valid positive integers
         assert initial_max > 0
         assert updated_max > 0
+
+
+class TestRateOfIncomeCard:
+    """Tests for the rate-of-income summary card added to the overview"""
+
+    def test_rate_of_income_card_value(self):
+        """Ensure rate-of-income is calculated correctly when household income is provided"""
+        summary = {
+            "loan_amount": 300000,
+            "monthly_payment": 2000,
+            "total_interest": 50000,
+            "years": 10,
+            "remaining_debt": 250000,
+        }
+        payoff_years = 29
+        household_income = 5000  # net monthly income
+
+        cards = build_summary_cards(
+            summary, payoff_years, household_income, lambda k: get_text("en", k)
+        )
+
+        rate_card = next(
+            card
+            for card in cards
+            if card.children[0].children == get_text("en", "rate_of_income")
+        )
+
+        assert rate_card.children[1].children == "40.0% of household income"
+
+    def test_rate_of_income_card_missing_income(self):
+        """Rate-of-income card should show N/A when income is missing or zero"""
+        summary = {
+            "loan_amount": 300000,
+            "monthly_payment": 2000,
+            "total_interest": 50000,
+            "years": 10,
+            "remaining_debt": 250000,
+        }
+        payoff_years = 29
+
+        cards = build_summary_cards(
+            summary, payoff_years, 0, lambda k: get_text("en", k)
+        )
+        rate_card = next(
+            card
+            for card in cards
+            if card.children[0].children == get_text("en", "rate_of_income")
+        )
+
+        assert rate_card.children[1].children == "N/A"
+
+    def test_format_years_months_formats_fractional_years(self):
+        """Test that the years+months formatting works for fractional year values."""
+        from callbacks import format_years_months
+
+        formatted = format_years_months(8.574, lambda k: get_text("en", k))
+        assert formatted.startswith("8")
+        assert "m" in formatted
 
 
 class TestErrorHandling:

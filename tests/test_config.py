@@ -17,6 +17,7 @@ def test_default_values_present():
     assert config.DEFAULT_INTEREST_RATE >= 0
     assert config.DEFAULT_INITIAL_AMORTIZATION >= 0
     assert isinstance(config.DEFAULT_INTEREST_BINDING_YEARS, int)
+    assert config.DEFAULT_HOUSEHOLD_INCOME > 0
 
 
 def test_env_overrides(monkeypatch):
@@ -27,6 +28,7 @@ def test_env_overrides(monkeypatch):
     monkeypatch.setenv("DEFAULT_INITIAL_AMORTIZATION", "0.5")
     monkeypatch.setenv("DEFAULT_INTEREST_BINDING_YEARS", "7")
     monkeypatch.setenv("DEFAULT_ANNUAL_SPECIAL_PAYMENT", "250")
+    monkeypatch.setenv("DEFAULT_HOUSEHOLD_INCOME", "75000")
 
     # reload config to pick up changed env
     importlib.reload(config)
@@ -37,3 +39,15 @@ def test_env_overrides(monkeypatch):
     assert config.DEFAULT_INITIAL_AMORTIZATION == 0.5
     assert config.DEFAULT_INTEREST_BINDING_YEARS == 7
     assert config.DEFAULT_ANNUAL_SPECIAL_PAYMENT == 250
+    assert config.DEFAULT_HOUSEHOLD_INCOME == 75000
+
+
+def test_invalid_env_fallback(monkeypatch):
+    # set invalid environment variable values - should fall back to defaults
+    monkeypatch.setenv("DEFAULT_HOUSEHOLD_INCOME", "invalid_value")
+
+    # reload config to pick up changed env
+    importlib.reload(config)
+
+    # should fall back to default value (6000)
+    assert config.DEFAULT_HOUSEHOLD_INCOME == 6000

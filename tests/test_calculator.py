@@ -818,6 +818,23 @@ class TestCalculatePayoffYears:
         if payoff_years <= len(schedule):
             assert schedule[payoff_years - 1].debt_end <= 0
 
+    def test_payoff_years_precise_returns_fractional_year(self):
+        """Test that precise payoff years can return fractional values (years + months)."""
+        input_data = FinancingInput(
+            purchase_price=200000,
+            equity=0,
+            interest_rate=4.0,
+            initial_amortization=10.0,
+        )
+        calc = FinancingCalculator(input_data)
+
+        years_int = calc.calculate_payoff_years()
+        years_precise = calc.calculate_payoff_years_precise()
+
+        assert isinstance(years_precise, float)
+        assert years_precise < years_int
+        assert years_precise > years_int - 1
+
 
 class TestCalculateWithRateChange:
     """Tests for interest rate change calculation method"""
