@@ -62,7 +62,7 @@ def _env_int(key: str, default: int) -> int:
         return default
 
 
-DEFAULT_PURCHASE_PRICE = _env_float("DEFAULT_PURCHASE_PRICE", 400000)
+DEFAULT_PURCHASE_PRICE = _env_float("DEFAULT_PURCHASE_PRICE", 500000)
 DEFAULT_EQUITY = _env_float("DEFAULT_EQUITY", 50000)
 DEFAULT_INTEREST_RATE = _env_float("DEFAULT_INTEREST_RATE", 4.0)  # percent p.a.
 DEFAULT_INITIAL_AMORTIZATION = _env_float(
@@ -70,6 +70,7 @@ DEFAULT_INITIAL_AMORTIZATION = _env_float(
 )  # percent p.a.
 DEFAULT_INTEREST_BINDING_YEARS = _env_int("DEFAULT_INTEREST_BINDING_YEARS", 10)
 DEFAULT_ANNUAL_SPECIAL_PAYMENT = _env_float("DEFAULT_ANNUAL_SPECIAL_PAYMENT", 0.0)
+DEFAULT_HOUSEHOLD_INCOME = _env_float("DEFAULT_HOUSEHOLD_INCOME", 6000)
 
 # Font settings
 PRIMARY_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"

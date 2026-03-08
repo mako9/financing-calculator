@@ -18,6 +18,77 @@ from charts import (
 )
 
 
+def format_years_months(years: float, t) -> str:
+    """Format a fractional year value as years + months."""
+
+    whole_years = int(years)
+    fraction = years - whole_years
+
+    # Always show months if there is any fractional part to help avoid
+    # misleading integer rounding (e.g., 28.01 years should show 28y 1m).
+    months = int(fraction * 12)
+    if fraction > 0 and months == 0:
+        months = 1
+
+    # If we round up to 12 months, roll over to the next year
+    if months >= 12:
+        whole_years += 1
+        months = 0
+
+    if months == 0:
+        return f"{whole_years} {t('years_short')}"
+
+    return f"{whole_years} {t('years_short')} {months}m"
+
+
+def build_summary_cards(summary, payoff_years, household_income, t):
+    """Build the summary cards shown on the overview tab.
+
+    This is extracted into a helper so the formatting logic can be unit tested.
+    """
+
+    remaining_debt = summary["remaining_debt"]
+    rate_of_income_value = "N/A"
+    if household_income and household_income > 0:
+        rate_pct = (summary["monthly_payment"] / household_income) * 100
+        rate_of_income_value = f"{rate_pct:.1f}% {t('of_household_income')}"
+
+    remaining_label = format_years_months(payoff_years, t)
+
+    return [
+        create_card(
+            t("loan_amount"),
+            f"€ {summary['loan_amount']:,.2f}",
+            COLORS["primary"],
+        ),
+        create_card(
+            t("monthly_rate"),
+            f"€ {summary['monthly_payment']:,.2f}",
+            COLORS["primary"],
+        ),
+        create_card(
+            t("total_interest"),
+            f"€ {summary['total_interest']:,.2f}",
+            COLORS["danger"],
+        ),
+        create_card(
+            t("total_payoff_years"),
+            remaining_label,
+            COLORS["warning"],
+        ),
+        create_card(
+            f"{t('remaining_debt')} {remaining_label}",
+            f"€ {remaining_debt:,.2f}",
+            COLORS["success"],
+        ),
+        create_card(
+            t("rate_of_income"),
+            rate_of_income_value,
+            COLORS["success"],
+        ),
+    ]
+
+
 def register_callbacks(app):
     """Register all Dash callbacks with the app"""
 
@@ -71,6 +142,7 @@ def register_callbacks(app):
             Output("initial-amort-label", "children"),
             Output("interest-binding-label", "children"),
             Output("special-payment-label", "children"),
+            Output("household-income-label", "children"),
             Output("input-params-title", "children"),
         ],
         Input("language-store", "data"),
@@ -85,6 +157,7 @@ def register_callbacks(app):
             t("initial_amortization"),
             t("interest_binding"),
             t("special_payment"),
+            t("household_income"),
             f"📋 {t('input_params')}",
         )
 
@@ -95,6 +168,33 @@ def register_callbacks(app):
     def update_years_display(years):
         """Update the displayed years value from the slider"""
         return str(years)
+
+    @app.callback(
+        Output("income_percentage_value", "children"),
+        Input("income_percentage_slider", "value"),
+    )
+    def update_income_percentage_display(percentage):
+        """Update the displayed income percentage value from the slider"""
+        return f"{percentage}%"
+
+    @app.callback(
+        Output("income-percentage-label", "children"),
+        [Input("language-store", "data"), Input("income_percentage_slider", "value")],
+    )
+    def update_income_percentage_label(lang, percentage):
+        """Update income percentage label with translation and current value"""
+        t = lambda key: get_text(lang, key)
+        return [
+            f"{t('income_percentage')}: ",
+            html.Span(
+                f"{percentage}%",
+                id="income_percentage_value",
+                style={
+                    "fontWeight": "700",
+                    "color": COLORS["primary"],
+                },
+            ),
+        ]
 
     @app.callback(
         [
@@ -150,7 +250,8 @@ def register_callbacks(app):
                 interest_rate=interest_rate or 0,
                 initial_amortization=initial_amortization or 0,
                 annual_special_payment=annual_special_payment or 0,
-                interest_binding_years=interest_binding_years or DEFAULT_INTEREST_BINDING_YEARS,
+                interest_binding_years=interest_binding_years
+                or DEFAULT_INTEREST_BINDING_YEARS,
             )
             calculator = FinancingCalculator(input_data)
             payoff_years = calculator.calculate_payoff_years()
@@ -177,11 +278,12 @@ def register_callbacks(app):
             Input("initial_amortization", "value"),
             Input("interest_binding_years", "value"),
             Input("annual_special_payment", "value"),
+            Input("household_income_input", "value"),
             Input("years_to_show", "value"),
             Input("language-store", "data"),
             Input("enable_rate_change", "value"),
             Input("new_interest_rate", "value"),
-        Input("payoff_years_store", "data"),
+            Input("payoff_years_store", "data"),
         ],
     )
     def update_calculations(
@@ -191,6 +293,7 @@ def register_callbacks(app):
         initial_amortization,
         interest_binding_years,
         annual_special_payment,
+        household_income,
         years_to_show,
         lang,
         enable_rate_change,
@@ -208,7 +311,8 @@ def register_callbacks(app):
                 interest_rate=interest_rate or 0,
                 initial_amortization=initial_amortization or 0,
                 annual_special_payment=annual_special_payment or 0,
-                interest_binding_years=interest_binding_years or DEFAULT_INTEREST_BINDING_YEARS,
+                interest_binding_years=interest_binding_years
+                or DEFAULT_INTEREST_BINDING_YEARS,
             )
 
             # Perform calculations
@@ -224,6 +328,7 @@ def register_callbacks(app):
             schedule = calculator.calculate_schedule(years)
             summary = calculator.get_summary(years)
             payoff_years = calculator.calculate_payoff_years()
+            payoff_years_precise = calculator.calculate_payoff_years_precise()
             df = calculator.schedule_to_dataframe()
 
             # Rename columns based on language
@@ -247,33 +352,9 @@ def register_callbacks(app):
                 ]
 
             # Create summary cards
-            summary_cards = [
-                create_card(
-                    t("loan_amount"),
-                    f"€ {summary['loan_amount']:,.2f}",
-                    COLORS["primary"],
-                ),
-                create_card(
-                    t("monthly_rate"),
-                    f"€ {summary['monthly_payment']:,.2f}",
-                    COLORS["primary"],
-                ),
-                create_card(
-                    t("total_interest"),
-                    f"€ {summary['total_interest']:,.2f}",
-                    COLORS["danger"],
-                ),
-                create_card(
-                    t("total_payoff_years"),
-                    f"{payoff_years} {t('years_short')}",
-                    COLORS["warning"],
-                ),
-                create_card(
-                    f"{t('remaining_debt')} {summary['years']} {t('years_short')}",
-                    f"€ {summary['remaining_debt']:,.2f}",
-                    COLORS["success"],
-                ),
-            ]
+            summary_cards = build_summary_cards(
+                summary, payoff_years_precise, household_income, t
+            )
 
             # Add rate change comparison cards if enabled
             rate_change_result = None
@@ -424,10 +505,13 @@ def register_callbacks(app):
             interest_rate=interest_rate or 0,
             initial_amortization=initial_amortization or 0,
             annual_special_payment=annual_special_payment or 0,
-            interest_binding_years=interest_binding_years or DEFAULT_INTEREST_BINDING_YEARS,
+            interest_binding_years=interest_binding_years
+            or DEFAULT_INTEREST_BINDING_YEARS,
         )
         calculator = FinancingCalculator(input_data)
-        years = years_to_show or payoff_years_store or calculator.calculate_payoff_years()
+        years = (
+            years_to_show or payoff_years_store or calculator.calculate_payoff_years()
+        )
         calculator.calculate_schedule(years)
         df = calculator.schedule_to_dataframe()
         filename = get_text(lang, "export_csv_filename")
@@ -468,7 +552,8 @@ def register_callbacks(app):
             interest_rate=interest_rate or 0,
             initial_amortization=initial_amortization or 0,
             annual_special_payment=annual_special_payment or 0,
-            interest_binding_years=interest_binding_years or DEFAULT_INTEREST_BINDING_YEARS,
+            interest_binding_years=interest_binding_years
+            or DEFAULT_INTEREST_BINDING_YEARS,
         )
         calculator = FinancingCalculator(input_data)
         years = (

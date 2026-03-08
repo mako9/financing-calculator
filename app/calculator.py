@@ -64,6 +64,10 @@ class FinancingCalculator:
                 self.annual_payment - interest + self.input.annual_special_payment
             )
 
+            # Ensure we don't amortize more than remaining debt
+            if amortization > remaining_debt:
+                amortization = remaining_debt
+
             # New debt
             debt_end = debt_start - amortization
 
@@ -124,8 +128,10 @@ class FinancingCalculator:
         return pd.DataFrame(data)
 
     def calculate_payoff_years(self, max_years: int = 100) -> int:
-        """
-        Calculate total years until the loan is fully paid back.
+        """Calculate total years until the loan is fully paid back.
+
+        This method returns a whole number of years, which is used for UI
+        elements like slider limits.
 
         Args:
             max_years: Maximum years to calculate (default 100)
@@ -145,6 +151,10 @@ class FinancingCalculator:
                 self.annual_payment - interest + self.input.annual_special_payment
             )
 
+            # Ensure we don't amortize more than remaining debt
+            if amortization > remaining_debt:
+                amortization = remaining_debt
+
             # New debt
             remaining_debt -= amortization
 
@@ -153,6 +163,44 @@ class FinancingCalculator:
                 return year
 
         return max_years
+
+    def calculate_payoff_years_precise(self, max_years: int = 100) -> float:
+        """Calculate payoff duration in years (including fractional year).
+
+        This is useful to display a more accurate payoff time (years + months)
+        and avoid showing a remaining debt that is negative due to rounding to
+        whole years.
+
+        Args:
+            max_years: Maximum years to calculate (default 100)
+
+        Returns:
+            Payoff years as a float, capped at max_years.
+        """
+        remaining_debt = self.loan_amount
+        rate = self.input.interest_rate / 100
+
+        for year in range(1, max_years + 1):
+            # Interest for this year
+            interest = remaining_debt * rate
+
+            # Amortization = Annual payment - Interest + Special payment
+            amortization = (
+                self.annual_payment - interest + self.input.annual_special_payment
+            )
+
+            if amortization <= 0:
+                # Cannot pay off loan
+                return float(max_years)
+
+            if amortization >= remaining_debt:
+                # Pay off within this year
+                fraction = remaining_debt / amortization
+                return (year - 1) + fraction
+
+            remaining_debt -= amortization
+
+        return float(max_years)
 
     def calculate_with_rate_change(
         self, new_interest_rate: float, max_years: int = 100
