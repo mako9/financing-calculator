@@ -131,3 +131,45 @@ def create_table(df):
         ],
         style={"width": "100%", "borderCollapse": "collapse", "fontSize": "0.95rem"},
     )
+
+
+def create_metric_with_description(title, value, description, color=None):
+    """Create a metric card with title, value, and description text"""
+    if color is None:
+        color = COLORS["primary"]
+
+    return html.Div(
+        [
+            html.Div(
+                title,
+                style={
+                    "fontSize": "0.9rem",
+                    "color": COLORS["dark"],
+                    "marginBottom": "0.5rem",
+                    "fontWeight": "600",
+                },
+            ),
+            html.Div(
+                value,
+                style={
+                    "fontSize": "1.5rem",
+                    "fontWeight": "700",
+                    "color": color,
+                    "marginBottom": "0.5rem",
+                },
+            ),
+            html.Div(
+                description,
+                style={
+                    "fontSize": "0.8rem",
+                    "color": COLORS["gray"],
+                    "lineHeight": "1.4",
+                },
+            ),
+        ],
+        style={
+            "padding": "1rem",
+            "borderBottom": f"1px solid {COLORS['light']}",
+        },
+    )
+

@@ -5,7 +5,7 @@ Handles all Dash callbacks for user interactions and data updates
 
 from dash import Input, Output, State, dcc, html
 from calculator import FinancingCalculator, FinancingInput
-from components import create_card, create_metric_box, create_table
+from components import create_card, create_metric_box, create_table, create_metric_with_description
 from config import COLORS, DEFAULT_INTEREST_BINDING_YEARS
 from translations import get_text
 from charts import (
@@ -15,6 +15,7 @@ from charts import (
     create_interest_curve_chart,
     create_cumulative_progress_chart,
     create_rate_change_comparison_chart,
+    create_equity_buildup_chart,
 )
 
 
@@ -55,7 +56,16 @@ def build_summary_cards(summary, payoff_years, household_income, t):
 
     remaining_label = format_years_months(payoff_years, t)
 
-    return [
+    # Breakeven year display
+    breakeven_year = summary.get("breakeven_year")
+    if breakeven_year:
+        breakeven_display = f"{t('year_breakeven')} {breakeven_year}"
+        breakeven_color = COLORS["success"]
+    else:
+        breakeven_display = t("not_reached")
+        breakeven_color = COLORS["warning"]
+
+    cards = [
         create_card(
             t("loan_amount"),
             f"€ {summary['loan_amount']:,.2f}",
@@ -86,7 +96,14 @@ def build_summary_cards(summary, payoff_years, household_income, t):
             rate_of_income_value,
             COLORS["success"],
         ),
+        create_card(
+            t("breakeven_milestone"),
+            breakeven_display,
+            breakeven_color,
+        ),
     ]
+
+    return cards
 
 
 def register_callbacks(app):
@@ -270,6 +287,7 @@ def register_callbacks(app):
             Output("interest_curve_chart", "figure"),
             Output("interest_development_chart", "figure"),
             Output("rate_change_comparison_chart", "figure"),
+            Output("equity_buildup_chart", "figure"),
         ],
         [
             Input("purchase_price", "value"),
@@ -432,7 +450,70 @@ def register_callbacks(app):
                         f"{t('remaining_debt')} {int(summary['years'])} {t('years_short')}": f"€ {summary['remaining_debt']:,.2f}",
                     },
                 ),
+                # New KPI metrics box
+                create_metric_box(
+                    t("kpis"),
+                    {
+                        t("total_cost_of_ownership"): f"€ {summary['total_cost_of_ownership']:,.2f}",
+                        t("ltv_ratio"): f"{summary['ltv_ratio']:.2f}%",
+                        t("interest_to_principal_ratio"): f"{summary['interest_to_principal_ratio']:.2%}",
+                    },
+                ),
             ]
+
+            # Add interest savings metric box if special payments are being made
+            if input_data.annual_special_payment > 0:
+                key_metrics.append(
+                    create_metric_box(
+                        t("interest_savings"),
+                        {
+                            t("interest_without_special"): f"€ {summary['interest_without_special']:,.2f}",
+                            t("interest_with_special"): f"€ {summary['interest_with_special']:,.2f}",
+                            t("interest_savings"): f"€ {summary['interest_savings']:,.2f}",
+                            t("time_saved"): f"{summary['time_saved_years']} {t('years_short')}",
+                        },
+                    )
+                )
+
+            # Add Risk Analysis metric box with low-priority KPIs
+            # This provides a detailed view with descriptions
+            risk_analysis_box = html.Div(
+                [
+                    html.H3(
+                        t("risk_analysis"),
+                        style={
+                            "fontSize": "1.1rem",
+                            "marginBottom": "1rem",
+                            "color": COLORS["dark"],
+                        },
+                    ),
+                    create_metric_with_description(
+                        t("buffer_ratio"),
+                        f"{summary['buffer_ratio']:.2f} {t('months')}",
+                        t("buffer_ratio_desc"),
+                        COLORS["primary"],
+                    ),
+                    create_metric_with_description(
+                        t("time_to_50_equity"),
+                        f"{summary['time_to_50_equity']:.1f} {t('years_short')}",
+                        t("time_to_50_equity_desc"),
+                        COLORS["success"],
+                    ),
+                    create_metric_with_description(
+                        t("rate_sensitivity_score"),
+                        f"+€ {summary['rate_sensitivity_score']:,.2f}",
+                        t("rate_sensitivity_desc"),
+                        COLORS["danger"],
+                    ),
+                ],
+                style={
+                    "backgroundColor": "white",
+                    "padding": "1.5rem",
+                    "borderRadius": "8px",
+                    "boxShadow": "0 2px 8px rgba(0, 0, 0, 0.05)",
+                },
+            )
+            key_metrics.append(risk_analysis_box)
 
             # Create table
             table = create_table(df)
@@ -442,11 +523,18 @@ def register_callbacks(app):
             interest_chart = create_interest_vs_amortization_chart(df, t)
             pie_fig = create_cost_distribution_pie_chart(summary, t)
             interest_curve_fig = create_interest_curve_chart(df, t)
-            interest_dev_fig = create_cumulative_progress_chart(df, t)
+            interest_dev_fig = create_cumulative_progress_chart(
+                df, t, summary.get("breakeven_year")
+            )
 
             # Create rate change comparison chart if rate change is enabled
             rate_change_fig = create_rate_change_comparison_chart(
                 rate_change_result, input_data.interest_binding_years, t
+            )
+
+            # Create equity buildup chart
+            equity_buildup_fig = create_equity_buildup_chart(
+                summary.get("equity_buildup_rate", []), t
             )
 
             return (
@@ -459,6 +547,7 @@ def register_callbacks(app):
                 interest_curve_fig,
                 interest_dev_fig,
                 rate_change_fig,
+                equity_buildup_fig,
             )
 
         except Exception as e:
@@ -468,7 +557,7 @@ def register_callbacks(app):
                 f"{error_msg}: {str(e)}",
                 style={"color": "red", "padding": "1rem"},
             )
-            return [error_div], [error_div], error_div, {}, {}, {}, {}, {}
+            return [error_div], [error_div], error_div, {}, {}, {}, {}, {}, {}, {}
 
     @app.callback(
         Output("download_csv", "data"),
@@ -676,6 +765,20 @@ def register_callbacks(app):
                 )
 
             # Build results
+            # Calculate Housing Expense Ratio
+            housing_expense_ratio = (affordable_monthly_payment / household_income) * 100
+
+            # Determine color based on benchmark
+            if housing_expense_ratio < 28:
+                her_color = COLORS["success"]
+                her_benchmark = t("good_ratio")
+            elif housing_expense_ratio <= 33:
+                her_color = COLORS["warning"]
+                her_benchmark = t("caution_ratio")
+            else:
+                her_color = COLORS["danger"]
+                her_benchmark = t("risky_ratio")
+
             return html.Div(
                 [
                     html.H4(
@@ -694,6 +797,16 @@ def register_callbacks(app):
                                 t("affordable_monthly_payment"),
                                 f"€{affordable_monthly_payment:,.0f}",
                                 COLORS["primary"],
+                            ),
+                            create_card(
+                                t("housing_expense_ratio"),
+                                f"{housing_expense_ratio:.1f}%",
+                                her_color,
+                            ),
+                            create_card(
+                                t("housing_expense_benchmark"),
+                                her_benchmark,
+                                her_color,
                             ),
                             create_card(
                                 t("years_to_payoff"),

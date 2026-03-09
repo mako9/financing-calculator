@@ -616,6 +616,18 @@ def create_layout(lang="en"):
                                                     "padding": "1.5rem",
                                                     "borderRadius": "8px",
                                                     "boxShadow": "0 2px 8px rgba(0, 0, 0, 0.1)",
+                                                    "marginBottom": "2rem",
+                                                },
+                                            ),
+                                            html.Div(
+                                                dcc.Graph(
+                                                    id="equity_buildup_chart"
+                                                ),
+                                                style={
+                                                    "backgroundColor": "white",
+                                                    "padding": "1.5rem",
+                                                    "borderRadius": "8px",
+                                                    "boxShadow": "0 2px 8px rgba(0, 0, 0, 0.1)",
                                                 },
                                             ),
                                         ],
