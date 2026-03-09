@@ -345,10 +345,12 @@ class TestRateOfIncomeCard:
             summary, payoff_years, household_income, lambda k: get_text("en", k)
         )
 
+        # With tooltips, card.children[0].children is a Span, so we check the Span's children
         rate_card = next(
             card
             for card in cards
-            if card.children[0].children == get_text("en", "rate_of_income")
+            if (hasattr(card.children[0].children, 'children') and
+                card.children[0].children.children == get_text("en", "rate_of_income"))
         )
 
         assert rate_card.children[1].children == "40.0% of household income"
@@ -367,10 +369,12 @@ class TestRateOfIncomeCard:
         cards = build_summary_cards(
             summary, payoff_years, 0, lambda k: get_text("en", k)
         )
+        # With tooltips, card.children[0].children is a Span, so we check the Span's children
         rate_card = next(
             card
             for card in cards
-            if card.children[0].children == get_text("en", "rate_of_income")
+            if (hasattr(card.children[0].children, 'children') and
+                card.children[0].children.children == get_text("en", "rate_of_income"))
         )
 
         assert rate_card.children[1].children == "N/A"

@@ -70,36 +70,50 @@ def build_summary_cards(summary, payoff_years, household_income, t):
             t("loan_amount"),
             f"€ {summary['loan_amount']:,.2f}",
             COLORS["primary"],
+            tooltip_text=t("tooltip_loan_amount"),
+            tooltip_id="tooltip-loan-amount",
         ),
         create_card(
             t("monthly_rate"),
             f"€ {summary['monthly_payment']:,.2f}",
             COLORS["primary"],
+            tooltip_text=t("tooltip_monthly_rate"),
+            tooltip_id="tooltip-monthly-rate",
         ),
         create_card(
             t("total_interest"),
             f"€ {summary['total_interest']:,.2f}",
             COLORS["danger"],
+            tooltip_text=t("tooltip_total_interest"),
+            tooltip_id="tooltip-total-interest",
         ),
         create_card(
             t("total_payoff_years"),
             remaining_label,
             COLORS["warning"],
+            tooltip_text=t("tooltip_total_payoff_years"),
+            tooltip_id="tooltip-total-payoff-years",
         ),
         create_card(
             f"{t('remaining_debt')} {remaining_label}",
             f"€ {remaining_debt:,.2f}",
             COLORS["success"],
+            tooltip_text=t("tooltip_remaining_debt"),
+            tooltip_id="tooltip-remaining-debt",
         ),
         create_card(
             t("rate_of_income"),
             rate_of_income_value,
             COLORS["success"],
+            tooltip_text=t("tooltip_rate_of_income"),
+            tooltip_id="tooltip-rate-of-income",
         ),
         create_card(
             t("breakeven_milestone"),
             breakeven_display,
             breakeven_color,
+            tooltip_text=t("tooltip_breakeven_milestone"),
+            tooltip_id="tooltip-breakeven-milestone",
         ),
     ]
 
@@ -423,11 +437,14 @@ def register_callbacks(app):
                 create_metric_box(
                     t("input"),
                     {
-                        t(
-                            "purchase_price_label"
-                        ): f"€ {summary['purchase_price']:,.2f}",
+                        t("purchase_price_label"): f"€ {summary['purchase_price']:,.2f}",
                         t("equity_label"): f"€ {summary['equity']:,.2f}",
                         t("interest_rate_label"): f"{summary['interest_rate']:.2f}%",
+                    },
+                    tooltips={
+                        t("purchase_price_label"): (t("tooltip_purchase_price"), "tooltip-purchase-price"),
+                        t("equity_label"): (t("tooltip_equity"), "tooltip-equity"),
+                        t("interest_rate_label"): (t("tooltip_interest_rate"), "tooltip-interest-rate"),
                     },
                 ),
                 create_metric_box(
@@ -435,19 +452,25 @@ def register_callbacks(app):
                     {
                         t("annual_rate"): f"€ {summary['annual_payment']:,.2f}",
                         t("monthly_rate"): f"€ {summary['monthly_payment']:,.2f}",
-                        t(
-                            "total_amortization"
-                        ): f"€ {summary['total_amortization']:,.2f}",
+                        t("total_amortization"): f"€ {summary['total_amortization']:,.2f}",
+                    },
+                    tooltips={
+                        t("annual_rate"): (t("tooltip_annual_rate"), "tooltip-annual-rate"),
+                        t("monthly_rate"): (t("tooltip_monthly_rate"), "tooltip-monthly-rate-2"),
+                        t("total_amortization"): (t("tooltip_total_amortization"), "tooltip-total-amortization"),
                     },
                 ),
                 create_metric_box(
                     t("totals"),
                     {
-                        t(
-                            "total_paid"
-                        ): f"€ {summary['total_amortization'] + summary['total_interest']:,.2f}",
+                        t("total_paid"): f"€ {summary['total_amortization'] + summary['total_interest']:,.2f}",
                         t("interest_costs"): f"€ {summary['total_interest']:,.2f}",
                         f"{t('remaining_debt')} {int(summary['years'])} {t('years_short')}": f"€ {summary['remaining_debt']:,.2f}",
+                    },
+                    tooltips={
+                        t("total_paid"): (t("tooltip_total_paid"), "tooltip-total-paid"),
+                        t("interest_costs"): (t("tooltip_interest_costs"), "tooltip-interest-costs"),
+                        f"{t('remaining_debt')} {int(summary['years'])} {t('years_short')}": (t("tooltip_remaining_debt"), "tooltip-remaining-debt-2"),
                     },
                 ),
                 # New KPI metrics box
@@ -457,6 +480,11 @@ def register_callbacks(app):
                         t("total_cost_of_ownership"): f"€ {summary['total_cost_of_ownership']:,.2f}",
                         t("ltv_ratio"): f"{summary['ltv_ratio']:.2f}%",
                         t("interest_to_principal_ratio"): f"{summary['interest_to_principal_ratio']:.2%}",
+                    },
+                    tooltips={
+                        t("total_cost_of_ownership"): (t("tooltip_total_cost_of_ownership"), "tooltip-total-cost-ownership"),
+                        t("ltv_ratio"): (t("tooltip_ltv_ratio"), "tooltip-ltv-ratio"),
+                        t("interest_to_principal_ratio"): (t("tooltip_interest_to_principal_ratio"), "tooltip-interest-principal-ratio"),
                     },
                 ),
             ]
@@ -471,6 +499,12 @@ def register_callbacks(app):
                             t("interest_with_special"): f"€ {summary['interest_with_special']:,.2f}",
                             t("interest_savings"): f"€ {summary['interest_savings']:,.2f}",
                             t("time_saved"): f"{summary['time_saved_years']} {t('years_short')}",
+                        },
+                        tooltips={
+                            t("interest_without_special"): (t("tooltip_interest_without_special"), "tooltip-interest-without-special"),
+                            t("interest_with_special"): (t("tooltip_interest_with_special"), "tooltip-interest-with-special"),
+                            t("interest_savings"): (t("tooltip_interest_savings"), "tooltip-interest-savings"),
+                            t("time_saved"): (t("tooltip_time_saved"), "tooltip-time-saved"),
                         },
                     )
                 )
@@ -492,18 +526,24 @@ def register_callbacks(app):
                         f"{summary['buffer_ratio']:.2f} {t('months')}",
                         t("buffer_ratio_desc"),
                         COLORS["primary"],
+                        tooltip_text=t("tooltip_buffer_ratio"),
+                        tooltip_id="tooltip-buffer-ratio",
                     ),
                     create_metric_with_description(
                         t("time_to_50_equity"),
                         f"{summary['time_to_50_equity']:.1f} {t('years_short')}",
                         t("time_to_50_equity_desc"),
                         COLORS["success"],
+                        tooltip_text=t("tooltip_time_to_50_equity"),
+                        tooltip_id="tooltip-time-50-equity",
                     ),
                     create_metric_with_description(
                         t("rate_sensitivity_score"),
                         f"+€ {summary['rate_sensitivity_score']:,.2f}",
                         t("rate_sensitivity_desc"),
                         COLORS["danger"],
+                        tooltip_text=t("tooltip_rate_sensitivity_score"),
+                        tooltip_id="tooltip-rate-sensitivity",
                     ),
                 ],
                 style={
@@ -792,31 +832,43 @@ def register_callbacks(app):
                                 t("household_income"),
                                 f"€{household_income:,.0f}",
                                 COLORS["primary"],
+                                tooltip_text=t("tooltip_household_income"),
+                                tooltip_id="tooltip-household-income",
                             ),
                             create_card(
                                 t("affordable_monthly_payment"),
                                 f"€{affordable_monthly_payment:,.0f}",
                                 COLORS["primary"],
+                                tooltip_text=t("tooltip_affordable_monthly_payment"),
+                                tooltip_id="tooltip-affordable-payment",
                             ),
                             create_card(
                                 t("housing_expense_ratio"),
                                 f"{housing_expense_ratio:.1f}%",
                                 her_color,
+                                tooltip_text=t("tooltip_housing_expense_ratio"),
+                                tooltip_id="tooltip-housing-expense-ratio",
                             ),
                             create_card(
                                 t("housing_expense_benchmark"),
                                 her_benchmark,
                                 her_color,
+                                tooltip_text=t("tooltip_housing_expense_benchmark"),
+                                tooltip_id="tooltip-housing-benchmark",
                             ),
                             create_card(
                                 t("years_to_payoff"),
                                 f"{affordability['years_to_payoff']} {t('years_short')}",
                                 COLORS["success"],
+                                tooltip_text=t("tooltip_years_to_payoff"),
+                                tooltip_id="tooltip-years-payoff",
                             ),
                             create_card(
                                 t("total_interest_by_payoff"),
                                 f"€{affordability['total_interest']:,.0f}",
                                 COLORS["danger"],
+                                tooltip_text=t("tooltip_total_interest"),
+                                tooltip_id="tooltip-total-interest-payoff",
                             ),
                         ],
                         style={
