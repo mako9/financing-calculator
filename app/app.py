@@ -23,7 +23,10 @@ from callbacks import register_callbacks
 def create_app():
     """Initialize and configure the Dash application"""
     app = dash.Dash(__name__)
-    app.title = "Financing Calculator"
+    # Note: app.title is set in layout but browser tab title doesn't update dynamically
+    # It will use the initial language's title
+    from translations import get_text
+    app.title = get_text("en", "app_title")  # Default to English for browser tab
 
     # Set initial layout
     app.layout = create_layout("en")

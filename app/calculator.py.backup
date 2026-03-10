@@ -174,80 +174,6 @@ class FinancingCalculator:
             "time_saved_years": time_saved_years,
         }
 
-    def _calculate_breakeven_point(self) -> dict:
-        """Calculate the breakeven point where cumulative amortization exceeds cumulative interest.
-
-        This is a psychological milestone that shows when you've paid more principal
-        than interest, indicating good progress on the loan.
-
-        Returns:
-            Dictionary with:
-            - breakeven_year: Year when breakeven occurs (None if not reached)
-            - cumulative_amortization_at_breakeven: Total amortization at breakeven
-            - cumulative_interest_at_breakeven: Total interest at breakeven
-        """
-        payoff_years = self.calculate_payoff_years()
-        schedule = self.calculate_schedule(payoff_years)
-
-        cumulative_amortization = 0
-        cumulative_interest = 0
-
-        for entry in schedule:
-            cumulative_amortization += entry.amortization
-            cumulative_interest += entry.interest_payment
-
-            if cumulative_amortization > cumulative_interest:
-                return {
-                    "breakeven_year": entry.year,
-                    "cumulative_amortization_at_breakeven": cumulative_amortization,
-                    "cumulative_interest_at_breakeven": cumulative_interest,
-                }
-
-        # If breakeven never occurs
-        return {
-            "breakeven_year": None,
-            "cumulative_amortization_at_breakeven": cumulative_amortization,
-            "cumulative_interest_at_breakeven": cumulative_interest,
-        }
-
-    def _calculate_equity_buildup_rate(self) -> list:
-        """Calculate year-by-year equity buildup showing acceleration over time.
-
-        This shows how equity grows each year and helps visualize the accelerating
-        nature of amortization (more principal paid as interest decreases).
-
-        Returns:
-            List of dictionaries with year, equity_gained, equity_percentage, and cumulative_equity
-        """
-        payoff_years = self.calculate_payoff_years()
-        schedule = self.calculate_schedule(payoff_years)
-
-        equity_buildup = []
-        cumulative_equity = self.input.equity  # Start with initial equity
-
-        for entry in schedule:
-            # Equity gained in this year = amortization (principal repaid)
-            equity_gained = entry.amortization
-            cumulative_equity += equity_gained
-
-            # Equity percentage = (cumulative equity / purchase price) × 100
-            equity_percentage = (
-                (cumulative_equity / self.input.purchase_price * 100)
-                if self.input.purchase_price > 0
-                else 0
-            )
-
-            equity_buildup.append(
-                {
-                    "year": entry.year,
-                    "equity_gained": equity_gained,
-                    "equity_percentage": equity_percentage,
-                    "cumulative_equity": cumulative_equity,
-                }
-            )
-
-        return equity_buildup
-
     def calculate_schedule(self, years: int) -> List[YearlySchedule]:
         """Generate amortization schedule for given number of years"""
         self.schedule = []
@@ -319,28 +245,6 @@ class FinancingCalculator:
         # Calculate scenario without special payments
         interest_savings_data = self._calculate_interest_savings()
 
-        # Medium-priority KPIs
-        # 1. Breakeven Point: Year when cumulative amortization exceeds cumulative interest
-        breakeven_data = self._calculate_breakeven_point()
-
-        # 2. Equity Buildup Rate: Year-by-year equity progression
-        equity_buildup_data = self._calculate_equity_buildup_rate()
-
-        # Low-priority KPIs (nice-to-have)
-        # 1. Buffer Ratio: How many months of emergency fund needed
-        # Formula: (Monthly Payment × 6) / Current Equity
-        buffer_ratio = (
-            ((self.monthly_payment * 6) / self.input.equity)
-            if self.input.equity > 0
-            else 0
-        )
-
-        # 2. Time to 50% Equity: Years until you own 50% of the property
-        time_to_50_equity = self._calculate_time_to_equity_percentage(50)
-
-        # 3. Rate Sensitivity Score: Payment increase if rates rise by 1%
-        rate_sensitivity_score = self._calculate_rate_sensitivity()
-
         return {
             "purchase_price": self.input.purchase_price,
             "equity": self.input.equity,
@@ -361,19 +265,6 @@ class FinancingCalculator:
             "interest_without_special": interest_savings_data["interest_without_special"],
             "interest_with_special": interest_savings_data["interest_with_special"],
             "time_saved_years": interest_savings_data["time_saved_years"],
-            # Medium-priority KPIs
-            "breakeven_year": breakeven_data["breakeven_year"],
-            "cumulative_amortization_at_breakeven": breakeven_data[
-                "cumulative_amortization_at_breakeven"
-            ],
-            "cumulative_interest_at_breakeven": breakeven_data[
-                "cumulative_interest_at_breakeven"
-            ],
-            "equity_buildup_rate": equity_buildup_data,
-            # Low-priority KPIs
-            "buffer_ratio": buffer_ratio,
-            "time_to_50_equity": time_to_50_equity,
-            "rate_sensitivity_score": rate_sensitivity_score,
         }
 
     def schedule_to_dataframe(self) -> pd.DataFrame:
@@ -595,7 +486,7 @@ class FinancingCalculator:
                 "remaining_debt": self.loan_amount,
                 "monthly_payment": 0,
                 "feasible": False,
-                "error_key": "error_payment_positive",
+                "error": "Payment must be positive",
             }
 
         remaining_debt = self.loan_amount
@@ -629,8 +520,7 @@ class FinancingCalculator:
                     "remaining_debt": self.loan_amount,
                     "monthly_payment": affordable_monthly_payment,
                     "feasible": False,
-                    "error_key": "error_payment_insufficient",
-                    "error_payment": affordable_monthly_payment,
+                    "error": f"Monthly payment €{affordable_monthly_payment:.2f} insufficient to cover interest",
                 }
 
             # Ensure we don't amortize more than remaining debt
@@ -655,7 +545,7 @@ class FinancingCalculator:
                 "remaining_debt": remaining_debt,
                 "monthly_payment": affordable_monthly_payment,
                 "feasible": False,
-                "error_key": "error_payoff_too_long",
+                "error": "Loan would take too long to pay off with this payment",
             }
 
         # Persist the payment used for this payoff calculation so

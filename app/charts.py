@@ -114,8 +114,14 @@ def create_interest_curve_chart(df, lang_text_func):
     return interest_curve_fig
 
 
-def create_cumulative_progress_chart(df, lang_text_func):
-    """Create chart showing cumulative amortization vs interest over time"""
+def create_cumulative_progress_chart(df, lang_text_func, breakeven_year=None):
+    """Create chart showing cumulative amortization vs interest over time
+
+    Args:
+        df: DataFrame with amortization schedule
+        lang_text_func: Translation function
+        breakeven_year: Optional year when breakeven occurs (for highlighting)
+    """
     t = lang_text_func
 
     # Calculate cumulative columns
@@ -145,6 +151,18 @@ def create_cumulative_progress_chart(df, lang_text_func):
             fillcolor="rgba(255, 107, 107, 0.3)",
         )
     )
+
+    # Add breakeven marker if provided
+    if breakeven_year and breakeven_year <= len(df):
+        interest_dev_fig.add_vline(
+            x=breakeven_year,
+            line_dash="dash",
+            line_color=COLORS["primary"],
+            line_width=3,
+            annotation_text=t("breakeven_milestone"),
+            annotation_position="top left",
+        )
+
     interest_dev_fig.update_layout(
         title=t("cumulative_progress"),
         xaxis_title=t("year"),
@@ -262,4 +280,86 @@ def create_rate_change_comparison_chart(rate_change_result, binding_years, lang_
         showlegend=True,
     )
     
+    return fig
+
+def create_equity_buildup_chart(equity_buildup_data, lang_text_func):
+    """Create chart showing year-by-year equity buildup progression.
+
+    Args:
+        equity_buildup_data: List of dictionaries with equity buildup information
+        lang_text_func: Translation function
+
+    Returns:
+        Plotly figure showing equity buildup over time
+    """
+    t = lang_text_func
+
+    if not equity_buildup_data:
+        fig = go.Figure()
+        fig.update_layout(
+            title=t("equity_buildup_progression"),
+            template="plotly_white",
+            height=CHART_HEIGHT,
+        )
+        return fig
+
+    years = [entry["year"] for entry in equity_buildup_data]
+    equity_gained = [entry["equity_gained"] for entry in equity_buildup_data]
+    cumulative_equity = [entry["cumulative_equity"] for entry in equity_buildup_data]
+    equity_percentage = [entry["equity_percentage"] for entry in equity_buildup_data]
+
+    # Create figure with secondary y-axis
+    fig = go.Figure()
+
+    # Add bar chart for annual equity gained
+    fig.add_trace(
+        go.Bar(
+            x=years,
+            y=equity_gained,
+            name=t("equity_gained_per_year"),
+            marker=dict(color=COLORS["success"]),
+            yaxis="y",
+        )
+    )
+
+    # Add line chart for cumulative equity percentage
+    fig.add_trace(
+        go.Scatter(
+            x=years,
+            y=equity_percentage,
+            name=t("equity_percentage"),
+            mode="lines+markers",
+            line=dict(color=COLORS["primary"], width=3),
+            marker=dict(size=6),
+            yaxis="y2",
+        )
+    )
+
+    # Update layout with dual y-axes
+    fig.update_layout(
+        title=t("equity_buildup_progression"),
+        xaxis_title=t("year"),
+        yaxis=dict(
+            title=t("equity_gained_per_year") + " (€)",
+            side="left",
+        ),
+        yaxis2=dict(
+            title=t("equity_percentage") + " (%)",
+            side="right",
+            overlaying="y",
+            range=[0, 100],
+        ),
+        hovermode="x unified",
+        template="plotly_white",
+        height=CHART_HEIGHT,
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+    )
+
     return fig
