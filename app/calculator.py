@@ -595,7 +595,7 @@ class FinancingCalculator:
                 "remaining_debt": self.loan_amount,
                 "monthly_payment": 0,
                 "feasible": False,
-                "error": "Payment must be positive",
+                "error_key": "error_payment_positive",
             }
 
         remaining_debt = self.loan_amount
@@ -629,7 +629,8 @@ class FinancingCalculator:
                     "remaining_debt": self.loan_amount,
                     "monthly_payment": affordable_monthly_payment,
                     "feasible": False,
-                    "error": f"Monthly payment €{affordable_monthly_payment:.2f} insufficient to cover interest",
+                    "error_key": "error_payment_insufficient",
+                    "error_payment": affordable_monthly_payment,
                 }
 
             # Ensure we don't amortize more than remaining debt
@@ -654,7 +655,7 @@ class FinancingCalculator:
                 "remaining_debt": remaining_debt,
                 "monthly_payment": affordable_monthly_payment,
                 "feasible": False,
-                "error": "Loan would take too long to pay off with this payment",
+                "error_key": "error_payoff_too_long",
             }
 
         # Persist the payment used for this payoff calculation so

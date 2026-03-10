@@ -143,18 +143,18 @@ def create_table(df):
                             html.Td(
                                 (
                                     f"{value:,.2f}"
-                                    if isinstance(value, (int, float)) and col != "Jahr"
+                                    if isinstance(value, (int, float)) and i > 0
                                     else (
-                                        str(int(value)) if col == "Jahr" else str(value)
+                                        str(int(value)) if i == 0 else str(value)
                                     )
                                 ),
                                 style={
                                     "padding": "0.8rem 1rem",
                                     "borderBottom": f"1px solid {COLORS['light']}",
-                                    "textAlign": "right" if col != "Jahr" else "left",
+                                    "textAlign": "right" if i > 0 else "left",
                                 },
                             )
-                            for col, value in zip(df.columns, row)
+                            for i, (col, value) in enumerate(zip(df.columns, row))
                         ]
                     )
                     for row in df.values

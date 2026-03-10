@@ -124,6 +124,23 @@ def register_callbacks(app):
     """Register all Dash callbacks with the app"""
 
     @app.callback(
+        [
+            Output("app-title", "children"),
+            Output("app-subtitle", "children"),
+            Output("language-label", "children"),
+        ],
+        Input("language-store", "data"),
+    )
+    def update_header_text(lang):
+        """Update app title, subtitle, and language label when language changes"""
+        t = lambda key: get_text(lang, key)
+        return (
+            f"🏠 {t('app_title')}",
+            t("app_subtitle"),
+            f"{t('language')}:",
+        )
+
+    @app.callback(
         Output("language-store", "data"),
         [Input("lang-de-btn", "n_clicks"), Input("lang-en-btn", "n_clicks")],
         prevent_initial_call=False,
@@ -175,12 +192,26 @@ def register_callbacks(app):
             Output("special-payment-label", "children"),
             Output("household-income-label", "children"),
             Output("input-params-title", "children"),
+            Output("years-to-show-label", "children"),
         ],
-        Input("language-store", "data"),
+        [Input("language-store", "data"), Input("years_to_show", "value")],
     )
-    def update_input_labels(lang):
+    def update_input_labels(lang, years_value):
         """Update all input parameter labels when language changes"""
         t = lambda key: get_text(lang, key)
+
+        years_label = [
+            f"{t('years_to_show')}: ",
+            html.Span(
+                str(years_value) if years_value else "10",
+                id="years_value",
+                style={
+                    "fontWeight": "700",
+                    "color": COLORS["primary"],
+                },
+            ),
+        ]
+
         return (
             t("purchase_price"),
             t("equity"),
@@ -190,15 +221,11 @@ def register_callbacks(app):
             t("special_payment"),
             t("household_income"),
             f"📋 {t('input_params')}",
+            years_label,
         )
 
-    @app.callback(
-        Output("years_value", "children"),
-        Input("years_to_show", "value"),
-    )
-    def update_years_display(years):
-        """Update the displayed years value from the slider"""
-        return str(years)
+    # Remove the separate years_value callback as it's now integrated above
+
 
     @app.callback(
         Output("income_percentage_value", "children"),
@@ -232,6 +259,7 @@ def register_callbacks(app):
             Output("rate_change_input_container", "style"),
             Output("new_interest_rate", "disabled"),
             Output("new-interest-rate-label", "children"),
+            Output("enable_rate_change", "options"),
         ],
         [
             Input("enable_rate_change", "value"),
@@ -243,11 +271,48 @@ def register_callbacks(app):
         t = lambda key: get_text(lang, key)
         is_enabled = len(enable_rate_change) > 0
 
+        # Update checklist options with translated label
+        options = [
+            {
+                "label": f" {t('enable_rate_change')}",
+                "value": 1,
+            }
+        ]
+
         return (
             {"display": "block"} if is_enabled else {"display": "none"},
             not is_enabled,
             t("new_interest_rate"),
+            options,
         )
+
+    @app.callback(
+        [
+            Output("tab-overview", "label"),
+            Output("tab-affordability", "label"),
+            Output("tab-schedule", "label"),
+            Output("tab-charts", "label"),
+            Output("tab-export", "label"),
+            Output("affordability-title", "children"),
+            Output("export-title", "children"),
+            Output("household_income_input", "placeholder"),
+        ],
+        Input("language-store", "data"),
+    )
+    def update_tab_labels(lang):
+        """Update all tab labels and section titles when language changes"""
+        t = lambda key: get_text(lang, key)
+        return (
+            f"📊 {t('overview')}",
+            f"💰 {t('affordability')}",
+            f"📈 {t('schedule')}",
+            f"📉 {t('charts')}",
+            f"⬇️ {t('export')}",
+            f"💰 {t('affordability')}",
+            t("export_data"),
+            t("placeholder_currency"),
+        )
+
 
     # Produces max, current slider value, and store copy of payoff years
     @app.callback(
@@ -364,24 +429,14 @@ def register_callbacks(app):
             df = calculator.schedule_to_dataframe()
 
             # Rename columns based on language
-            if lang == "de":
-                df.columns = [
-                    "Jahr",
-                    "Restschuld Anfang (€)",
-                    "Jahresrate (€)",
-                    "Zinsanteil (€)",
-                    "Tilgung (€)",
-                    "Restschuld Ende (€)",
-                ]
-            else:
-                df.columns = [
-                    "Year",
-                    "Beginning Debt (€)",
-                    "Annual Rate (€)",
-                    "Interest (€)",
-                    "Amortization (€)",
-                    "Ending Debt (€)",
-                ]
+            df.columns = [
+                t("table_year"),
+                t("table_beginning_debt"),
+                t("table_annual_rate"),
+                t("table_interest"),
+                t("table_amortization"),
+                t("table_ending_debt"),
+            ]
 
             # Create summary cards
             summary_cards = build_summary_cards(
@@ -643,6 +698,18 @@ def register_callbacks(app):
         )
         calculator.calculate_schedule(years)
         df = calculator.schedule_to_dataframe()
+
+        # Rename columns based on language
+        t = lambda key: get_text(lang, key)
+        df.columns = [
+            t("table_year"),
+            t("table_beginning_debt"),
+            t("table_annual_rate"),
+            t("table_interest"),
+            t("table_amortization"),
+            t("table_ending_debt"),
+        ]
+
         filename = get_text(lang, "export_csv_filename")
         return dcc.send_data_frame(df.to_csv, filename)
 
@@ -791,6 +858,14 @@ def register_callbacks(app):
 
             # Build result display
             if not affordability["feasible"]:
+                error_key = affordability.get("error_key", "error_calculation")
+                error_msg = t(error_key)
+
+                # For error_payment_insufficient, include the payment amount
+                if error_key == "error_payment_insufficient":
+                    error_payment = affordability.get("error_payment", 0)
+                    error_msg = f"{error_msg}: €{error_payment:.2f}"
+
                 return html.Div(
                     [
                         html.H4(
@@ -798,7 +873,7 @@ def register_callbacks(app):
                             style={"color": COLORS["danger"], "marginBottom": "1rem"},
                         ),
                         html.P(
-                            affordability.get("error", t("error_calculation")),
+                            error_msg,
                             style={"color": COLORS["danger"], "fontSize": "1rem"},
                         ),
                     ]

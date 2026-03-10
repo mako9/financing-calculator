@@ -52,10 +52,13 @@ def create_layout(lang="en"):
                     html.Div(
                         [
                             html.H1(
-                                f"🏠 {t('app_title')}", style={"marginBottom": "0.5rem"}
+                                f"🏠 {t('app_title')}",
+                                id="app-title",
+                                style={"marginBottom": "0.5rem"}
                             ),
                             html.P(
                                 t("app_subtitle"),
+                                id="app-subtitle",
                                 style={"color": COLORS["gray"], "marginBottom": "0"},
                             ),
                         ],
@@ -65,6 +68,7 @@ def create_layout(lang="en"):
                         [
                             html.Label(
                                 f"{t('language')}:",
+                                id="language-label",
                                 style={"fontWeight": "600", "marginRight": "0.5rem"},
                             ),
                             html.Button(
@@ -310,7 +314,7 @@ def create_layout(lang="en"):
                                                 id="household_income_input",
                                                 type="number",
                                                 value=DEFAULT_HOUSEHOLD_INCOME,
-                                                placeholder="€",
+                                                placeholder=t("placeholder_currency"),
                                                 min=0,
                                                 step=100,
                                                 style={
@@ -442,6 +446,7 @@ def create_layout(lang="en"):
                                                 },
                                             ),
                                         ],
+                                        id="years-to-show-label",
                                         style={
                                             "fontWeight": "600",
                                             "marginBottom": "0.5rem",
@@ -485,6 +490,7 @@ def create_layout(lang="en"):
                                     dcc.Tab(
                                         label=f"📊 {t('overview')}",
                                         value="overview",
+                                        id="tab-overview",
                                         children=[
                                             html.Div(
                                                 id="summary_cards",
@@ -510,11 +516,13 @@ def create_layout(lang="en"):
                                     dcc.Tab(
                                         label=f"💰 {t('affordability')}",
                                         value="affordability",
+                                        id="tab-affordability",
                                         children=[
                                             html.Div(
                                                 [
                                                     html.H3(
                                                         f"💰 {t('affordability')}",
+                                                        id="affordability-title",
                                                         style={"marginBottom": "1rem"},
                                                     ),
                                                     html.Div(
@@ -535,6 +543,7 @@ def create_layout(lang="en"):
                                     dcc.Tab(
                                         label=f"📈 {t('schedule')}",
                                         value="table",
+                                        id="tab-schedule",
                                         children=[
                                             html.Div(
                                                 id="table_container",
@@ -552,6 +561,7 @@ def create_layout(lang="en"):
                                     dcc.Tab(
                                         label=f"📉 {t('charts')}",
                                         value="charts",
+                                        id="tab-charts",
                                         children=[
                                             html.Div(
                                                 dcc.Graph(id="debt_chart"),
@@ -636,11 +646,13 @@ def create_layout(lang="en"):
                                     dcc.Tab(
                                         label=f"⬇️ {t('export')}",
                                         value="export",
+                                        id="tab-export",
                                         children=[
                                             html.Div(
                                                 [
                                                     html.H3(
                                                         t("export_data"),
+                                                        id="export-title",
                                                         style={
                                                             "marginBottom": "1.5rem"
                                                         },

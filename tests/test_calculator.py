@@ -392,7 +392,7 @@ class TestCalculateYearsToPayoff:
 
         assert result["feasible"] is False
         assert result["years_to_payoff"] == 0
-        assert result["error"] == "Payment must be positive"
+        assert result["error_key"] == "error_payment_positive"
         assert result["remaining_debt"] == 240000
 
     def test_years_to_payoff_negative_payment(self, basic_financing):
@@ -401,7 +401,7 @@ class TestCalculateYearsToPayoff:
 
         assert result["feasible"] is False
         assert result["years_to_payoff"] == 0
-        assert result["error"] == "Payment must be positive"
+        assert result["error_key"] == "error_payment_positive"
 
     def test_years_to_payoff_insufficient_payment(self, basic_financing):
         """Test payment that doesn't cover interest"""
@@ -411,7 +411,7 @@ class TestCalculateYearsToPayoff:
 
         assert result["feasible"] is False
         assert result["years_to_payoff"] is None
-        assert "insufficient to cover interest" in result["error"]
+        assert result["error_key"] == "error_payment_insufficient"
 
     def test_years_to_payoff_barely_sufficient_payment(self, basic_financing):
         """Test payment barely sufficient to cover interest"""
@@ -554,12 +554,12 @@ class TestCalculateYearsToPayoff:
         assert result["years_to_payoff"] is not None
 
     def test_years_to_payoff_error_field_when_infeasible(self, basic_financing):
-        """Test that error field exists when calculation is infeasible"""
+        """Test that error_key field exists when calculation is infeasible"""
         result = basic_financing.calculate_years_to_payoff(500)
 
         assert result["feasible"] is False
-        assert "error" in result
-        assert len(result["error"]) > 0
+        assert "error_key" in result
+        assert len(result["error_key"]) > 0
 
 
 class TestCalculatePayoffYears:

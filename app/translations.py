@@ -268,6 +268,19 @@ How many years needed to fully pay off the loan with your affordable payment.
         "buffer_ratio_tooltip": """Emergency Fund Buffer Ratio indicates financial resilience relative to mortgage obligations. Calculation: (Monthly Payment × 6 months) / Current Equity. This shows how many months of emergency reserves you need. Lower values are better. A ratio below 1.0 suggests good emergency preparedness relative to your investment.""",
         "time_to_50_equity_tooltip": """Time to 50% Equity marks when you own half the property value. Calculation: Years until (Initial Equity + Cumulative Principal) ≥ 50% of Purchase Price. This milestone is critical for refinancing opportunities and financial security. Reaching 50% equity typically takes 10-15 years with standard financing but can be accelerated with special payments.""",
         "rate_sensitivity_score_tooltip": """Rate Sensitivity Score shows vulnerability to interest rate increases. Calculation: Monthly Payment at (Current Rate + 1%) - Current Monthly Payment. This is critical when approaching the end of your interest binding period. Higher sensitivity means greater exposure to refinancing risk. Plan ahead if your sensitivity is high (>€200/month).""",
+        # Table column headers
+        "table_year": "Year",
+        "table_beginning_debt": "Beginning Debt (€)",
+        "table_annual_rate": "Annual Rate (€)",
+        "table_interest": "Interest (€)",
+        "table_amortization": "Amortization (€)",
+        "table_ending_debt": "Ending Debt (€)",
+        # Error messages
+        "error_payment_positive": "Payment must be positive",
+        "error_payment_insufficient": "Monthly payment insufficient to cover interest",
+        "error_payoff_too_long": "Loan would take too long to pay off with this payment",
+        # Placeholder text
+        "placeholder_currency": "€",
     },
     "de": {
         "app_title": "Baufinanzierung Rechner",
@@ -533,6 +546,19 @@ Wie viele Jahre benötigt werden, um das Darlehen mit Ihrer leistbaren Rate voll
         "buffer_ratio_tooltip": """Notfall-Puffer-Verhältnis zeigt finanzielle Widerstandsfähigkeit im Verhältnis zu Hypothekenverpflichtungen. Berechnung: (Monatliche Rate × 6 Monate) / Aktuelles Eigenkapital. Dies zeigt, wie viele Monate Notfallreserven Sie benötigen. Niedrigere Werte sind besser. Ein Verhältnis unter 1,0 deutet auf gute Notfallvorsorge im Verhältnis zu Ihrer Investition hin.""",
         "time_to_50_equity_tooltip": """Zeit bis 50% Eigenkapital markiert, wann Sie die Hälfte des Immobilienwerts besitzen. Berechnung: Jahre bis (Anfängliches Eigenkapital + Kumulierte Tilgung) ≥ 50% des Kaufpreises. Dieser Meilenstein ist kritisch für Refinanzierungsmöglichkeiten und finanzielle Sicherheit. 50% Eigenkapital zu erreichen dauert typischerweise 10-15 Jahre bei Standardfinanzierung, kann aber mit Sondertilgungen beschleunigt werden.""",
         "rate_sensitivity_score_tooltip": """Zinssensitivität zeigt Anfälligkeit für Zinserhöhungen. Berechnung: Monatliche Rate bei (Aktueller Zinssatz + 1%) - Aktuelle monatliche Rate. Dies ist kritisch, wenn Sie sich dem Ende Ihrer Zinsbindung nähern. Höhere Sensitivität bedeutet größere Exposition gegenüber Refinanzierungsrisiko. Planen Sie voraus, wenn Ihre Sensitivität hoch ist (>200€/Monat).""",
+        # Table column headers
+        "table_year": "Jahr",
+        "table_beginning_debt": "Restschuld Anfang (€)",
+        "table_annual_rate": "Jahresrate (€)",
+        "table_interest": "Zinsanteil (€)",
+        "table_amortization": "Tilgung (€)",
+        "table_ending_debt": "Restschuld Ende (€)",
+        # Error messages
+        "error_payment_positive": "Zahlung muss positiv sein",
+        "error_payment_insufficient": "Monatliche Zahlung reicht nicht aus, um Zinsen zu decken",
+        "error_payoff_too_long": "Darlehensrückzahlung würde mit dieser Zahlung zu lange dauern",
+        # Placeholder text
+        "placeholder_currency": "€",
     },
 }
 
